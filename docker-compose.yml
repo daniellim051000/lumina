@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: lumina_postgres
+    environment:
+      POSTGRES_DB: lumina_db
+      POSTGRES_USER: lumina_user
+      POSTGRES_PASSWORD: lumina_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - lumina_network
+
+  # Optional: PgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: lumina_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@lumina.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - lumina_network
+    profiles:
+      - dev-tools
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lumina_network:
+    driver: bridge
