@@ -1,0 +1,43 @@
+{
+  "name": "lumina-frontend",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "license": "MIT",
+  "scripts": {
+    "dev-react": "vite",
+    "build-react": "vite build",
+    "build-electron": "tsc",
+    "build": "npm run build-react && npm run build-electron",
+    "start": "npm run build && electron .",
+    "dev": "npm run build-electron && NODE_ENV=development electron .",
+    "clean": "rm -rf dist build",
+    "rebuild": "npm run clean && npm run build",
+    "lint": "eslint . --ext ts,tsx",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "@types/node": "^24.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "@vitejs/plugin-react": "^5.0.2",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4"
+  },
+  "dependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
