@@ -13,6 +13,20 @@ export default [
       parser: tsparser,
       ecmaVersion: 2020,
       sourceType: 'module',
+      globals: {
+        process: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        require: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        confirm: 'readonly',
+        RequestInit: 'readonly',
+        NodeJS: 'readonly',
+      },
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -42,6 +56,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'build/**', 'node_modules/**'],
+    ignores: ['dist/**', 'build/**', 'node_modules/**', 'postcss.config.js', 'tailwind.config.js'],
   },
 ];

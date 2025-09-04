@@ -47,7 +47,7 @@ export const Dashboard: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Good morning! 👋</h1>
         <p className="text-lg text-gray-600 mt-2">
-          Here's what's happening with your tasks today.
+          Here&apos;s what&apos;s happening with your tasks today.
         </p>
       </div>
 
@@ -109,7 +109,7 @@ export const Dashboard: React.FC = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Today's Tasks ({todaysTasks.length})
+                  Today&apos;s Tasks ({todaysTasks.length})
                 </h2>
                 <Link
                   to="/tasks"
