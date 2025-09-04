@@ -2,6 +2,7 @@ import React from 'react';
 import { Task, TaskPriority, TaskStatus } from '../types/task';
 import { format } from 'date-fns';
 import clsx from 'clsx';
+import { isDateOverdue } from '../utils/dateHelpers';
 
 interface TaskItemProps {
   task: Task;
@@ -29,7 +30,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onDelete,
 }) => {
   const isCompleted = task.status === TaskStatus.COMPLETED;
-  const isOverdue = task.dueDate && new Date() > task.dueDate && !isCompleted;
+  const isOverdue = isDateOverdue(task.dueDate) && !isCompleted;
 
   return (
     <div

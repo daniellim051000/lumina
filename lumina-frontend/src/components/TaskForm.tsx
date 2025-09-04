@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskPriority, TaskStatus } from '../types/task';
+import { getTodayAsDateString, formatDateForInput } from '../utils/dateHelpers';
 
 interface TaskFormProps {
   task?: Task | null;
@@ -19,7 +20,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     description: '',
     status: TaskStatus.TODO,
     priority: TaskPriority.MEDIUM,
-    dueDate: '',
+    dueDate: getTodayAsDateString(),
     project: '',
     tags: '',
   });
@@ -31,7 +32,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         description: task.description || '',
         status: task.status,
         priority: task.priority,
-        dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
+        dueDate: formatDateForInput(task.dueDate),
         project: task.project || '',
         tags: task.tags?.join(', ') || '',
       });
