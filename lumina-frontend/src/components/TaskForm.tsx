@@ -19,7 +19,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     description: '',
     status: TaskStatus.TODO,
     priority: TaskPriority.MEDIUM,
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0],
     project: '',
     tags: '',
   });
