@@ -1,6 +1,5 @@
 import React from 'react';
 import { SidebarItem } from './SidebarItem';
-import { CollapseButton } from './CollapseButton';
 import { useSidebar } from './SidebarContext';
 
 const navigationItems = [
@@ -25,12 +24,6 @@ export const SidebarNav: React.FC = () => {
           icon={item.icon}
         />
       ))}
-      
-      <div className="pt-4 mt-4 border-t border-gray-200">
-        <div className="flex items-center">
-          <CollapseButton />
-        </div>
-      </div>
     </nav>
   );
 };

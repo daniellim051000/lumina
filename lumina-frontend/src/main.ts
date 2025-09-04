@@ -1,10 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { colors } from './utils/colors';
 
 const isDev = process.env.NODE_ENV === 'development';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -16,6 +14,13 @@ function createWindow(): void {
       preload: path.join(__dirname, 'preload.js'),
     },
     show: false,
+    titleBarStyle: 'hiddenInset',
+    titleBarOverlay: {
+      color: colors.primary[500],
+      symbolColor: colors.neutral.white,
+      height: 32
+    },
+    trafficLightPosition: { x: 20, y: 22 }
   });
 
   if (isDev) {
