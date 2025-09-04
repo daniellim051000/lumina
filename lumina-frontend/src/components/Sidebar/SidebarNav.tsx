@@ -1,6 +1,5 @@
 import React from 'react';
 import { SidebarItem } from './SidebarItem';
-import { useSidebar } from './SidebarContext';
 
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: '🏠' },
@@ -12,8 +11,6 @@ const navigationItems = [
 ];
 
 export const SidebarNav: React.FC = () => {
-  const { isCollapsed } = useSidebar();
-
   return (
     <nav className="flex-1 px-3 py-4 space-y-1">
       {navigationItems.map(item => (

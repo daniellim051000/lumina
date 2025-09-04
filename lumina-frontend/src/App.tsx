@@ -15,10 +15,10 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Title bar drag area for Electron */}
       <div className="electron-drag fixed top-0 left-0 w-full h-8 z-50 bg-transparent" />
-      
+
       <MobileHeader />
       <Sidebar />
-      <main 
+      <main
         className={`transition-all duration-300 ease-in-out pt-8 ${
           isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
         }`}

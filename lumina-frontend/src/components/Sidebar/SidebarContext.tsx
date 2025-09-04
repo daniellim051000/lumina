@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 
 interface SidebarContextType {
   isCollapsed: boolean;
@@ -24,12 +30,14 @@ interface SidebarProviderProps {
   children: ReactNode;
 }
 
-export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) => {
+export const SidebarProvider: React.FC<SidebarProviderProps> = ({
+  children,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('lumina-sidebar-collapsed');
     return saved ? JSON.parse(saved) : false;
   });
-  
+
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -53,7 +61,10 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
   };
 
   useEffect(() => {
-    localStorage.setItem('lumina-sidebar-collapsed', JSON.stringify(isCollapsed));
+    localStorage.setItem(
+      'lumina-sidebar-collapsed',
+      JSON.stringify(isCollapsed)
+    );
   }, [isCollapsed]);
 
   useEffect(() => {
@@ -81,8 +92,6 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
   };
 
   return (
-    <SidebarContext.Provider value={value}>
-      {children}
-    </SidebarContext.Provider>
+    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
   );
 };

@@ -10,14 +10,19 @@ export const Sidebar: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (isMobileOpen && !target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+      if (
+        isMobileOpen &&
+        !target.closest('.sidebar') &&
+        !target.closest('.mobile-menu-button')
+      ) {
         closeMobileSidebar();
       }
     };
 
     if (isMobileOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isMobileOpen, closeMobileSidebar]);
 
@@ -25,7 +30,7 @@ export const Sidebar: React.FC = () => {
     <>
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden"
           onClick={closeMobileSidebar}
         />
@@ -41,7 +46,7 @@ export const Sidebar: React.FC = () => {
           'hidden lg:flex',
           isCollapsed ? 'lg:w-16' : 'lg:w-60',
           // Mobile behavior
-          isMobileOpen ? 'flex w-60' : 'hidden',
+          isMobileOpen ? 'flex w-60' : 'hidden'
         )}
       >
         {/* Logo/Brand Section with Collapse Button */}

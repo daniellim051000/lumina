@@ -3,7 +3,6 @@ import { Task, TaskPriority, TaskStatus } from '../types/task';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 import { isDateOverdue } from '../utils/dateHelpers';
-import { semantic } from '../utils/colors';
 
 interface TaskItemProps {
   task: Task;
