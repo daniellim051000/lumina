@@ -4,6 +4,7 @@ import { mockTasks } from '../data/mockTasks';
 import { TaskList } from '../components/TaskList';
 import { TaskFiltersComponent } from '../components/TaskFilters';
 import { TaskForm } from '../components/TaskForm';
+import { isDateOverdue } from '../utils/dateHelpers';
 
 export const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
@@ -84,8 +85,7 @@ export const TasksPage: React.FC = () => {
     completed: tasks.filter(t => t.status === TaskStatus.COMPLETED).length,
     pending: tasks.filter(t => t.status !== TaskStatus.COMPLETED).length,
     overdue: tasks.filter(
-      t =>
-        t.dueDate && new Date() > t.dueDate && t.status !== TaskStatus.COMPLETED
+      t => isDateOverdue(t.dueDate) && t.status !== TaskStatus.COMPLETED
     ).length,
   };
 

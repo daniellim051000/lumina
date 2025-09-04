@@ -3,15 +3,12 @@ import { Link } from 'react-router-dom';
 import { mockTasks } from '../data/mockTasks';
 import { TaskStatus } from '../types/task';
 import { format } from 'date-fns';
+import { isDateToday, isDateOverdue } from '../utils/dateHelpers';
 
 export const Dashboard: React.FC = () => {
   const todaysTasks = mockTasks.filter(task => {
     if (task.status === TaskStatus.COMPLETED) return false;
-    if (!task.dueDate) return false;
-
-    const today = new Date();
-    const taskDate = new Date(task.dueDate);
-    return taskDate.toDateString() === today.toDateString();
+    return isDateToday(task.dueDate);
   });
 
   const upcomingTasks = mockTasks
@@ -36,8 +33,7 @@ export const Dashboard: React.FC = () => {
     inProgress: mockTasks.filter(t => t.status === TaskStatus.IN_PROGRESS)
       .length,
     overdue: mockTasks.filter(
-      t =>
-        t.dueDate && new Date() > t.dueDate && t.status !== TaskStatus.COMPLETED
+      t => isDateOverdue(t.dueDate) && t.status !== TaskStatus.COMPLETED
     ).length,
   };
 
