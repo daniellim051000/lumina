@@ -1,0 +1,133 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiService, User, SignInRequest, SignUpRequest } from '../services/api';
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signIn: (credentials: SignInRequest) => Promise<void>;
+  signUp: (data: SignUpRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  error: string | null;
+  clearError: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Initialize authentication state on app startup
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Check if user is already authenticated
+      if (apiService.isAuthenticated()) {
+        const storedUser = apiService.getCurrentUser();
+        if (storedUser) {
+          // Verify token is still valid by fetching fresh user data
+          try {
+            const freshUser = await apiService.getUserProfile();
+            setUser(freshUser);
+          } catch (error) {
+            // Token might be expired, try with stored user data
+            setUser(storedUser);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+      setError('Failed to initialize authentication');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signIn = async (credentials: SignInRequest) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await apiService.signIn(credentials);
+      setUser(response.user);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (data: SignUpRequest) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await apiService.signUp(data);
+      setUser(response.user);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign up failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await apiService.logout();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Even if logout request fails, clear local state
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearError = () => {
+    setError(null);
+  };
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    signIn,
+    signUp,
+    logout,
+    error,
+    clearError,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

@@ -6,8 +6,8 @@ const isDev = process.env.NODE_ENV === 'development';
 
 function setupContentSecurityPolicy(): void {
   const cspHeader = isDev
-    ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; font-src 'self' data:; img-src 'self' data: http://localhost:3000;"
-    : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:;";
+    ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; font-src 'self' data:; img-src 'self' data: http://localhost:3000; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:8000;"
+    : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self';";
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
