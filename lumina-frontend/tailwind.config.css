@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Configuration */
+@theme {
+  /* Add custom theme configuration here if needed */
+}
+
+/* Custom utilities */
+@utility line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

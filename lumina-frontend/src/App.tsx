@@ -1,110 +1,60 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { apiService, HealthResponse, ApiInfoResponse } from './services/api';
+import { Navigation } from './components/Navigation';
+import { Dashboard } from './pages/Dashboard';
+import { TasksPage } from './pages/Tasks';
+import { NotFoundPage } from './pages/NotFound';
 
 function App() {
-  const [platformInfo, setPlatformInfo] = React.useState<{
-    platform: string;
-    electronVersion: string;
-  } | null>(null);
-  
-  const [apiHealth, setApiHealth] = React.useState<HealthResponse | null>(null);
-  const [apiInfo, setApiInfo] = React.useState<ApiInfoResponse | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    // Get Electron info
-    if (window.electronAPI) {
-      setPlatformInfo({
-        platform: window.electronAPI.platform,
-        electronVersion: window.electronAPI.versions.electron,
-      });
-    }
-
-    // Test API connectivity
-    const testApi = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const [healthData, infoData] = await Promise.all([
-          apiService.getHealth(),
-          apiService.getApiInfo()
-        ]);
-        
-        setApiHealth(healthData);
-        setApiInfo(infoData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    testApi();
-  }, []);
-
   return (
-    <div className="app">
-      <div className="container">
-        <div className="logo">✨</div>
-        <h1>Lumina</h1>
-        <p className="subtitle">Your powerful desktop application</p>
-        
-        {loading && (
-          <div className="status loading">⏳ Connecting to backend...</div>
-        )}
-        
-        {error && (
-          <div className="status error">❌ Backend connection failed: {error}</div>
-        )}
-        
-        {apiHealth && !loading && (
-          <div className="status success">✅ Backend connected successfully!</div>
-        )}
-        
-        <p>Full-stack desktop app with Electron + React + Django</p>
-        
-        {/* Platform Info */}
-        {platformInfo && (
-          <div className="info-section">
-            <h3>Platform Information</h3>
-            <div className="info">
-              <p>Platform: <strong>{platformInfo.platform}</strong></p>
-              <p>Electron: <strong>{platformInfo.electronVersion}</strong></p>
-            </div>
-          </div>
-        )}
-        
-        {/* API Health */}
-        {apiHealth && (
-          <div className="info-section">
-            <h3>API Health Check</h3>
-            <div className="info">
-              <p>Status: <strong>{apiHealth.status}</strong></p>
-              <p>Message: <strong>{apiHealth.message}</strong></p>
-              <p>Version: <strong>{apiHealth.version}</strong></p>
-            </div>
-          </div>
-        )}
-        
-        {/* API Info */}
-        {apiInfo && (
-          <div className="info-section">
-            <h3>Backend Information</h3>
-            <div className="info">
-              <p>API: <strong>{apiInfo.api_name}</strong></p>
-              <p>Framework: <strong>{apiInfo.framework}</strong></p>
-              <p>Database: <strong>{apiInfo.database}</strong></p>
-              <p>CORS: <strong>{apiInfo.cors_enabled ? 'Enabled' : 'Disabled'}</strong></p>
-              <p>Endpoints: <strong>{apiInfo.endpoints.join(', ')}</strong></p>
-            </div>
-          </div>
-        )}
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route
+              path="/journal"
+              element={<ComingSoonPage section="Journal" />}
+            />
+            <Route
+              path="/timer"
+              element={<ComingSoonPage section="Focus Timer" />}
+            />
+            <Route
+              path="/calendar"
+              element={<ComingSoonPage section="Calendar" />}
+            />
+            <Route
+              path="/settings"
+              element={<ComingSoonPage section="Settings" />}
+            />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </main>
       </div>
-    </div>
+    </Router>
   );
 }
+
+const ComingSoonPage: React.FC<{ section: string }> = ({ section }) => (
+  <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+    <div className="text-6xl mb-6">🚧</div>
+    <h1 className="text-3xl font-bold text-gray-900 mb-4">
+      {section} - Coming Soon
+    </h1>
+    <p className="text-lg text-gray-600 mb-8">
+      This feature is under development and will be available soon.
+    </p>
+    <a
+      href="/"
+      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+    >
+      ← Back to Dashboard
+    </a>
+  </div>
+);
 
 export default App;

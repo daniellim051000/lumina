@@ -1,5 +1,6 @@
 // API service for backend communication
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 export interface HealthResponse {
   status: string;
@@ -17,9 +18,12 @@ export interface ApiInfoResponse {
 }
 
 class ApiService {
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options?: RequestInit
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         headers: {
