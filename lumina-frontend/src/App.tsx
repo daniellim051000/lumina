@@ -1,40 +1,56 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { Navigation } from './components/Navigation';
+import { Sidebar, SidebarProvider, useSidebar } from './components/Sidebar';
+import { MobileHeader } from './components/MobileHeader';
 import { Dashboard } from './pages/Dashboard';
 import { TasksPage } from './pages/Tasks';
 import { NotFoundPage } from './pages/NotFound';
 
+const AppContent: React.FC = () => {
+  const { isCollapsed } = useSidebar();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <MobileHeader />
+      <Sidebar />
+      <main 
+        className={`transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
+        }`}
+      >
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route
+            path="/journal"
+            element={<ComingSoonPage section="Journal" />}
+          />
+          <Route
+            path="/timer"
+            element={<ComingSoonPage section="Focus Timer" />}
+          />
+          <Route
+            path="/calendar"
+            element={<ComingSoonPage section="Calendar" />}
+          />
+          <Route
+            path="/settings"
+            element={<ComingSoonPage section="Settings" />}
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <main>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route
-              path="/journal"
-              element={<ComingSoonPage section="Journal" />}
-            />
-            <Route
-              path="/timer"
-              element={<ComingSoonPage section="Focus Timer" />}
-            />
-            <Route
-              path="/calendar"
-              element={<ComingSoonPage section="Calendar" />}
-            />
-            <Route
-              path="/settings"
-              element={<ComingSoonPage section="Settings" />}
-            />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
-      </div>
+      <SidebarProvider>
+        <AppContent />
+      </SidebarProvider>
     </Router>
   );
 }
