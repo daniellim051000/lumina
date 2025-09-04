@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './styles/css-variables.css';
 
 /* Base styles */
 * {
@@ -22,4 +23,24 @@ body {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+/* Electron title bar utilities */
+.electron-drag {
+  -webkit-app-region: drag;
+}
+
+.electron-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Title bar spacing for macOS - only on desktop */
+.title-bar-spacing {
+  padding-top: 0;
+}
+
+@media (min-width: 1024px) {
+  .title-bar-spacing {
+    padding-top: 30px;
+  }
 }

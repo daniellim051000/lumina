@@ -9,7 +9,11 @@ interface SidebarItemProps {
   icon: string;
 }
 
-export const SidebarItem: React.FC<SidebarItemProps> = ({ name, href, icon }) => {
+export const SidebarItem: React.FC<SidebarItemProps> = ({
+  name,
+  href,
+  icon,
+}) => {
   const location = useLocation();
   const { isCollapsed, isMobileOpen, closeMobileSidebar } = useSidebar();
   const isActive = location.pathname === href;
@@ -34,7 +38,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({ name, href, icon }) =>
       )}
       title={isCollapsed && !isMobileOpen ? name : undefined}
     >
-      <span 
+      <span
         className={clsx(
           'text-lg flex-shrink-0',
           isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
@@ -42,13 +46,13 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({ name, href, icon }) =>
       >
         {icon}
       </span>
-      
+
       {(!isCollapsed || isMobileOpen) && (
         <span className="ml-3 truncate transition-opacity duration-200">
           {name}
         </span>
       )}
-      
+
       {isCollapsed && !isMobileOpen && (
         <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
           {name}

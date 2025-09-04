@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import { Sidebar, SidebarProvider, useSidebar } from './components/Sidebar';
@@ -6,16 +6,20 @@ import { MobileHeader } from './components/MobileHeader';
 import { Dashboard } from './pages/Dashboard';
 import { TasksPage } from './pages/Tasks';
 import { NotFoundPage } from './pages/NotFound';
+import { injectCSSVariables } from './utils/cssVariables';
 
 const AppContent: React.FC = () => {
   const { isCollapsed } = useSidebar();
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Title bar drag area for Electron */}
+      <div className="electron-drag fixed top-0 left-0 w-full h-8 z-50 bg-transparent" />
+
       <MobileHeader />
       <Sidebar />
-      <main 
-        className={`transition-all duration-300 ease-in-out ${
+      <main
+        className={`transition-all duration-300 ease-in-out pt-8 ${
           isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
         }`}
       >
@@ -46,6 +50,10 @@ const AppContent: React.FC = () => {
 };
 
 function App() {
+  useEffect(() => {
+    injectCSSVariables();
+  }, []);
+
   return (
     <Router>
       <SidebarProvider>

@@ -1,10 +1,25 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { validateColorConfig, getColorWithFallback } from './utils/colors';
 
 const isDev = process.env.NODE_ENV === 'development';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+function setupContentSecurityPolicy(): void {
+  const cspHeader = isDev
+    ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; font-src 'self' data:; img-src 'self' data: http://localhost:3000;"
+    : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:;";
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [cspHeader],
+        'X-Frame-Options': ['DENY'],
+        'X-Content-Type-Options': ['nosniff'],
+      },
+    });
+  });
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -13,9 +28,17 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      allowRunningInsecureContent: false,
       preload: path.join(__dirname, 'preload.js'),
     },
     show: false,
+    titleBarStyle: 'hiddenInset',
+    titleBarOverlay: {
+      color: getColorWithFallback('primary', '500', '#667eea'),
+      symbolColor: getColorWithFallback('neutral', 'white', '#ffffff'),
+      height: 32,
+    },
+    trafficLightPosition: { x: 20, y: 22 },
   });
 
   if (isDev) {
@@ -30,7 +53,13 @@ function createWindow(): void {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  if (!validateColorConfig()) {
+    console.error('Color configuration validation failed');
+  }
+  setupContentSecurityPolicy();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

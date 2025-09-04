@@ -4,13 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-Lumina is a full-stack desktop application with a monorepo structure containing two main components:
+Lumina is a full-stack desktop task management application with a monorepo structure containing two main components:
 
 ### Frontend (lumina-frontend/)
 - **Electron + React 19 + TypeScript** desktop application
-- **Vite** for development server and building
+- **Vite 7.x** for development server and building  
+- **Tailwind CSS 4.x** for styling with custom design system
 - **Two-process architecture**: Electron main process (`src/main.ts`) and React renderer
-- **API communication** through centralized service class (`src/services/api.ts`)
+- **Modern UI components**: Collapsible sidebar, task management interface, responsive design
+- **Icon system**: Lucide React for consistent iconography
+- **Color utilities**: Custom color management system (`src/utils/colors.ts`)
 - **Environment variables** prefixed with `VITE_` (e.g., `VITE_API_BASE_URL`)
 
 ### Backend (lumina-backend/)  
@@ -18,7 +21,7 @@ Lumina is a full-stack desktop application with a monorepo structure containing 
 - **PostgreSQL** database running in Docker
 - **CORS enabled** for Electron frontend communication
 - **Environment variables** managed via `python-decouple` and `.env` files
-- **Single API app** with health/info endpoints
+- **RESTful API** with task management endpoints
 
 ### Development Workflow
 The application requires **4 concurrent processes** for full development:
@@ -62,7 +65,7 @@ pre-commit run --all-files
 cd lumina-frontend
 
 # Development (requires React dev server + Electron)
-yarn dev-react    # Terminal 1: Start React dev server
+yarn dev-react    # Terminal 1: Start React dev server (Vite)
 yarn dev         # Terminal 2: Start Electron (after React is running)
 
 # Building
@@ -71,8 +74,9 @@ yarn build-electron # Compile TypeScript to /dist
 yarn build         # Build both
 
 # Code quality
-yarn lint:fix
-yarn format
+yarn lint:fix     # ESLint with auto-fix
+yarn format      # Prettier formatting
+yarn format:check # Check formatting without changes
 ```
 
 ## Key Architecture Patterns
@@ -96,8 +100,9 @@ yarn format
 
 ### Code Quality
 - **Backend**: Ruff linter/formatter + pre-commit hooks with MyPy type checking
-- **Frontend**: ESLint + Prettier + Husky + lint-staged pre-commit hooks
-- **Django**: Configured with `rest_framework`, `corsheaders`, and custom `api` app
+- **Frontend**: ESLint 9.x + Prettier + Husky + lint-staged pre-commit hooks
+- **Modern tooling**: TypeScript 5.x, React 19, Tailwind CSS 4.x
+- **Git hooks**: Automatic formatting and linting on commit
 
 ## Environment Variables
 

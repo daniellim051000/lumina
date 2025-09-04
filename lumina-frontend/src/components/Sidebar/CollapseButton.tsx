@@ -9,10 +9,9 @@ export const CollapseButton: React.FC = () => {
     <button
       onClick={toggleSidebar}
       className={clsx(
-        'flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200',
-        'text-gray-500 hover:text-gray-700 hover:bg-gray-100',
-        'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-        isCollapsed ? 'mx-auto' : 'ml-auto mr-2'
+        'flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200',
+        'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+        'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
       )}
       title={isCollapsed ? 'Expand sidebar (⌘B)' : 'Collapse sidebar (⌘B)'}
     >
