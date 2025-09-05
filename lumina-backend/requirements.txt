@@ -2,6 +2,7 @@ asgiref==3.9.1
 Django==5.2.6
 django-cors-headers==4.7.0
 djangorestframework==3.16.1
+djangorestframework-simplejwt==5.3.0
 psycopg2-binary==2.9.10
 python-decouple==3.8
 sqlparse==0.5.3
@@ -9,3 +10,17 @@ sqlparse==0.5.3
 # Development dependencies
 pre-commit==4.3.0
 ruff==0.12.11
+
+# Testing dependencies
+pytest==8.3.3
+pytest-django==4.9.0
+pytest-cov==5.0.0
+pytest-xdist==3.6.0
+factory-boy==3.3.1
+faker==30.8.2
+
+# Security and rate limiting
+django-ratelimit==4.1.0
+djangorestframework-simplejwt==5.3.0
+redis==5.0.1
+django-redis==5.4.0

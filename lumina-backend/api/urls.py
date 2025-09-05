@@ -1,7 +1,10 @@
-from django.urls import path
-from . import views
+from django.urls import include, path
 
 urlpatterns = [
-    path('health/', views.health_check, name='health_check'),
-    path('info/', views.api_info, name='api_info'),
+    # Common endpoints
+    path("", include("api.common.urls")),
+    # Authentication endpoints
+    path("auth/", include("api.user.urls")),
+    # Todo endpoints (placeholder for future implementation)
+    # path('todos/', include('api.todo.urls')),
 ]

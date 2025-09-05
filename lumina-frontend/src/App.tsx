@@ -5,11 +5,33 @@ import { Sidebar, SidebarProvider, useSidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
 import { Dashboard } from './pages/Dashboard';
 import { TasksPage } from './pages/Tasks';
+import { Settings } from './pages/Settings';
 import { NotFoundPage } from './pages/NotFound';
 import { injectCSSVariables } from './utils/cssVariables';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthPage } from './components/auth/AuthPage';
 
 const AppContent: React.FC = () => {
   const { isCollapsed } = useSidebar();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">✨</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication page if user is not authenticated
+  if (!isAuthenticated) {
+    return <AuthPage initialMode="signin" />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,10 +60,7 @@ const AppContent: React.FC = () => {
             path="/calendar"
             element={<ComingSoonPage section="Calendar" />}
           />
-          <Route
-            path="/settings"
-            element={<ComingSoonPage section="Settings" />}
-          />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
@@ -56,9 +75,11 @@ function App() {
 
   return (
     <Router>
-      <SidebarProvider>
-        <AppContent />
-      </SidebarProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <AppContent />
+        </SidebarProvider>
+      </AuthProvider>
     </Router>
   );
 }
