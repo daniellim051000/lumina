@@ -41,9 +41,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",  # Enable token blacklisting
+    "drf_spectacular",  # API Documentation
     "corsheaders",
     "django_ratelimit",  # Rate limiting for security
     "api",
+    "api.task",  # Task management app
 ]
 
 MIDDLEWARE = [
@@ -172,6 +174,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # CORS Configuration
@@ -227,12 +230,16 @@ AUTH_SIGNIN_RATE_LIMIT = config("AUTH_SIGNIN_RATE_LIMIT", default="5/m")
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool
+)
 SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
 
 # Cookie settings for JWT tokens
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)  # Set to True in production
+SESSION_COOKIE_SECURE = config(
+    "COOKIE_SECURE", default=False, cast=bool
+)  # Set to True in production
 SESSION_COOKIE_SAMESITE = config("COOKIE_SAMESITE", default="Lax")
 
 # Custom cookie settings for JWT
@@ -241,5 +248,37 @@ JWT_REFRESH_COOKIE_NAME = "jwt_refresh_token"
 JWT_COOKIE_MAX_AGE = 15 * 60  # 15 minutes for access token
 JWT_REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days for refresh token
 JWT_COOKIE_HTTPONLY = True
-JWT_COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)  # Set to True in production with HTTPS
+JWT_COOKIE_SECURE = config(
+    "COOKIE_SECURE", default=False, cast=bool
+)  # Set to True in production with HTTPS
 JWT_COOKIE_SAMESITE = config("COOKIE_SAMESITE", default="Lax")
+
+# drf-spectacular Configuration
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Lumina Task Management API",
+    "DESCRIPTION": "API for Lumina task management system inspired by Todoist and Notion. "
+    "Features include tasks, subtasks, projects, labels, priorities (P1-P4), "
+    "and rich notes functionality.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SERVE_AUTHENTICATION": ["rest_framework.authentication.SessionAuthentication"],
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": False,
+        "defaultModelsExpandDepth": 2,
+        "defaultModelExpandDepth": 2,
+    },
+    "REDOC_UI_SETTINGS": {
+        "hideDownloadButton": False,
+        "expandResponses": "200,201",
+    },
+    "SORT_OPERATION_PARAMETERS": True,
+    "ENUM_NAME_OVERRIDES": {
+        "TaskPriorityChoices": "api.task.models.Task.PRIORITY_CHOICES",
+    },
+    "PREPROCESSING_HOOKS": ["api.spectacular_hooks.preprocessing_filter_spec"],
+    "POSTPROCESSING_HOOKS": ["api.spectacular_hooks.postprocessing_hook"],
+}

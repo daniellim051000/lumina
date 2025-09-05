@@ -13,7 +13,14 @@ import { AuthPage } from './components/auth/AuthPage';
 
 const AppContent: React.FC = () => {
   const { isCollapsed } = useSidebar();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, error } = useAuth();
+
+  console.log('[APP] Render state:', {
+    isAuthenticated,
+    isLoading,
+    user,
+    error,
+  });
 
   // Show loading screen while checking authentication
   if (isLoading) {
