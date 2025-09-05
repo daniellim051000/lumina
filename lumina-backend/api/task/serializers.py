@@ -1,9 +1,13 @@
 """API serializers for task management."""
 
+import re
+from html import escape
+
 from django.contrib.auth.models import User
+from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from .models import Label, Project, Task, TaskComment
+from .models import Label, Project, Task, TaskComment, validate_hex_color
 
 
 class UserSimpleSerializer(serializers.ModelSerializer):
@@ -15,12 +19,42 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 
 class LabelSerializer(serializers.ModelSerializer):
-    """Label serializer."""
+    """Label serializer with validation."""
 
     class Meta:
         model = Label
         fields = ["id", "name", "color", "created_at"]
         read_only_fields = ["created_at"]
+
+    def validate_name(self, value):
+        """Validate and sanitize label name."""
+        if not value or len(value.strip()) < 1:
+            raise serializers.ValidationError("Label name cannot be empty.")
+        
+        # Sanitize input
+        cleaned = strip_tags(value).strip()
+        if len(cleaned) > 100:
+            raise serializers.ValidationError("Label name is too long (maximum 100 characters).")
+        
+        return cleaned
+
+    def validate_color(self, value):
+        """Validate hex color format."""
+        validate_hex_color(value)  # Use the model validator
+        return value
+
+    def validate(self, attrs):
+        """Validate label data including unique constraints."""
+        user = self.context["request"].user
+        name = attrs.get("name")
+        
+        # Check for duplicate label name for the same user
+        if name and Label.objects.filter(user=user, name=name).exists():
+            raise serializers.ValidationError({
+                "name": "You already have a label with this name."
+            })
+        
+        return attrs
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
@@ -28,7 +62,7 @@ class LabelSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    """Project serializer."""
+    """Project serializer with validation."""
 
     user = UserSimpleSerializer(read_only=True)
     parent = serializers.PrimaryKeyRelatedField(
@@ -65,6 +99,46 @@ class ProjectSerializer(serializers.ModelSerializer):
             user = self.context["request"].user
             self.fields["parent"].queryset = Project.objects.filter(user=user)
 
+    def validate_name(self, value):
+        """Validate and sanitize project name."""
+        if not value or len(value.strip()) < 1:
+            raise serializers.ValidationError("Project name cannot be empty.")
+        
+        # Sanitize input
+        cleaned = strip_tags(value).strip()
+        if len(cleaned) > 255:
+            raise serializers.ValidationError("Project name is too long (maximum 255 characters).")
+        
+        return cleaned
+
+    def validate_color(self, value):
+        """Validate hex color format."""
+        validate_hex_color(value)  # Use the model validator
+        return value
+
+    def validate_description(self, value):
+        """Validate and sanitize project description."""
+        if value:
+            # Sanitize input
+            cleaned = strip_tags(value).strip()
+            if len(cleaned) > 5000:
+                raise serializers.ValidationError("Project description is too long (maximum 5000 characters).")
+            return cleaned
+        return value
+
+    def validate(self, attrs):
+        """Validate project data including unique constraints."""
+        user = self.context["request"].user
+        name = attrs.get("name")
+        
+        # Check for duplicate project name for the same user
+        if name and Project.objects.filter(user=user, name=name).exists():
+            raise serializers.ValidationError({
+                "name": "You already have a project with this name."
+            })
+        
+        return attrs
+
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
@@ -77,7 +151,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class TaskCommentSerializer(serializers.ModelSerializer):
-    """Task comment serializer."""
+    """Task comment serializer with validation."""
 
     user = UserSimpleSerializer(read_only=True)
 
@@ -85,6 +159,18 @@ class TaskCommentSerializer(serializers.ModelSerializer):
         model = TaskComment
         fields = ["id", "user", "content", "created_at", "updated_at"]
         read_only_fields = ["created_at", "updated_at"]
+
+    def validate_content(self, value):
+        """Validate and sanitize comment content."""
+        if not value or len(value.strip()) < 1:
+            raise serializers.ValidationError("Comment content cannot be empty.")
+        
+        # Sanitize input
+        cleaned = strip_tags(value).strip()
+        if len(cleaned) > 5000:
+            raise serializers.ValidationError("Comment content is too long (maximum 5000 characters).")
+        
+        return cleaned
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
@@ -159,6 +245,53 @@ class TaskSerializer(serializers.ModelSerializer):
             self.fields["project_id"].queryset = Project.objects.filter(user=user)
             self.fields["parent_task"].queryset = Task.objects.filter(user=user)
             self.fields["label_ids"].queryset = Label.objects.filter(user=user)
+
+    def validate_title(self, value):
+        """Validate and sanitize task title."""
+        if not value or len(value.strip()) < 1:
+            raise serializers.ValidationError("Task title cannot be empty.")
+        
+        # Sanitize input
+        cleaned = strip_tags(value).strip()
+        if len(cleaned) > 500:
+            raise serializers.ValidationError("Task title is too long (maximum 500 characters).")
+        
+        return cleaned
+
+    def validate_description(self, value):
+        """Validate and sanitize task description."""
+        if value:
+            # Sanitize input
+            cleaned = strip_tags(value).strip()
+            if len(cleaned) > 10000:
+                raise serializers.ValidationError("Task description is too long (maximum 10000 characters).")
+            return cleaned
+        return value
+
+    def validate_notes(self, value):
+        """Validate and sanitize task notes."""
+        if value:
+            # Sanitize input
+            cleaned = strip_tags(value).strip()
+            if len(cleaned) > 50000:
+                raise serializers.ValidationError("Task notes are too long (maximum 50000 characters).")
+            return cleaned
+        return value
+
+    def validate_priority(self, value):
+        """Validate task priority."""
+        valid_priorities = [choice[0] for choice in Task.PRIORITY_CHOICES]
+        if value and value not in valid_priorities:
+            raise serializers.ValidationError(f"Invalid priority. Must be one of: {valid_priorities}")
+        return value
+
+    def validate(self, data):
+        """Cross-field validation."""
+        # Check date logic
+        if data.get('date') and data.get('due_date') and data['date'] > data['due_date']:
+            raise serializers.ValidationError("Task date cannot be after due date.")
+        
+        return data
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user

@@ -19,15 +19,20 @@ import {
   useKeyboardShortcuts,
   createModalShortcuts,
 } from '../../hooks/useKeyboardShortcuts';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorDisplay } from '../ui/ErrorDisplay';
 
 interface TaskModalProps {
   isOpen: boolean;
   task?: Task | null;
   projects: Project[];
   labels: Label[];
-  onSave: (taskData: Partial<Task> | TaskQuickCreate) => void;
+  onSave: (taskData: Partial<Task> | TaskQuickCreate) => Promise<void>;
   onCancel: () => void;
-  onDelete?: (taskId: number) => void;
+  onDelete?: (taskId: number) => Promise<void>;
+  loading?: boolean;
+  error?: string | null;
+  onClearError?: () => void;
 }
 
 const priorityColors = {
@@ -46,6 +51,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   onSave,
   onCancel,
   onDelete,
+  loading = false,
+  error = null,
+  onClearError,
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -58,6 +66,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     label_ids: [] as number[],
     is_completed: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -102,10 +111,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   useKeyboardShortcuts(modalShortcuts, isOpen);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim() || isSubmitting) return;
 
     const taskData = {
       ...formData,
@@ -117,7 +126,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       label_ids: formData.label_ids.length > 0 ? formData.label_ids : undefined,
     };
 
-    onSave(taskData);
+    setIsSubmitting(true);
+    try {
+      await onSave(taskData);
+    } catch (error) {
+      // Error handling is done at parent level
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLabelToggle = (labelId: number) => {
@@ -171,6 +187,18 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           onSubmit={handleSubmit}
           className="flex flex-col h-full max-h-[calc(90vh-80px)]"
         >
+          {/* Error Display */}
+          {error && (
+            <div className="p-4 border-b border-gray-200">
+              <ErrorDisplay
+                error={error}
+                title="Task operation failed"
+                onDismiss={onClearError}
+                variant="inline"
+              />
+            </div>
+          )}
+          
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Task Title */}
             <div>
@@ -387,10 +415,25 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               {task && onDelete && (
                 <button
                   type="button"
-                  onClick={() => onDelete(task.id)}
-                  className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  onClick={async () => {
+                    if (onDelete) {
+                      setIsSubmitting(true);
+                      try {
+                        await onDelete(task.id);
+                      } catch (error) {
+                        // Error handling is done at parent level
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }
+                  }}
+                  disabled={loading || isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Delete Task
+                  {isSubmitting && (
+                    <LoadingSpinner size="sm" className="mr-2" />
+                  )}
+                  {isSubmitting ? 'Deleting...' : 'Delete Task'}
                 </button>
               )}
               <div className="text-xs text-gray-500">
@@ -411,10 +454,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={!formData.title.trim()}
-                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!formData.title.trim() || loading || isSubmitting}
+                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {task ? 'Update Task' : 'Create Task'}
+                {(loading || isSubmitting) && (
+                  <LoadingSpinner size="sm" className="mr-2" />
+                )}
+                {loading || isSubmitting ? 'Saving...' : task ? 'Update Task' : 'Create Task'}
               </button>
             </div>
           </div>

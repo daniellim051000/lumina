@@ -1,8 +1,36 @@
-"""API views for task management."""
+"""API views for task management.
+
+This module contains Django REST Framework views for managing tasks, projects, labels,
+and task comments. All views include comprehensive features:
+
+- **Authentication**: All endpoints require user authentication
+- **Authorization**: Users can only access their own data
+- **Input Validation**: All inputs are validated and sanitized
+- **Database Optimization**: Queries use select_related and prefetch_related
+- **Pagination**: List views support pagination for performance
+- **Error Handling**: Comprehensive error responses with meaningful messages
+- **API Documentation**: OpenAPI/Swagger documentation with examples
+
+Main View Classes:
+    - TaskListCreateView: List tasks with filtering, create new tasks
+    - TaskDetailView: Retrieve, update, delete individual tasks  
+    - TaskBulkUpdateView: Bulk operations on multiple tasks
+    - ProjectListCreateView: Manage projects for task organization
+    - LabelListCreateView: Manage labels for task categorization
+    - TaskCommentListCreateView: Comments and collaboration on tasks
+    - task_stats: Dashboard statistics and metrics
+
+Filtering Options:
+    Tasks can be filtered by priority, project, completion status, dates,
+    search terms, and special views (today, week, overdue).
+
+Bulk Operations:
+    Support for completing/uncompleting multiple tasks and reordering.
+"""
 
 from datetime import timedelta
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import generics, status
@@ -11,6 +39,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.pagination import LargeResultsSetPagination, SmallResultsSetPagination, StandardResultsSetPagination
 from .models import Label, Project, Task, TaskComment
 from .serializers import (
     LabelSerializer,
@@ -27,9 +56,10 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user, is_active=True)
+        return Project.objects.select_related('user').filter(user=self.request.user, is_active=True)
 
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -39,10 +69,17 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user)
+        return Project.objects.select_related('user').filter(user=self.request.user)
 
     def perform_destroy(self, instance):
-        # Soft delete by marking as inactive
+        """Soft delete project by marking as inactive instead of hard deletion.
+        
+        This preserves data integrity by keeping project references intact
+        while hiding the project from active use.
+        
+        Args:
+            instance (Project): The project instance to soft delete
+        """
         instance.is_active = False
         instance.save()
 
@@ -52,9 +89,10 @@ class LabelListCreateView(generics.ListCreateAPIView):
 
     serializer_class = LabelSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Label.objects.filter(user=self.request.user)
+        return Label.objects.select_related('user').filter(user=self.request.user)
 
 
 class LabelDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -64,7 +102,7 @@ class LabelDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Label.objects.filter(user=self.request.user)
+        return Label.objects.select_related('user').filter(user=self.request.user)
 
 
 @extend_schema(
@@ -127,6 +165,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
     """List and create tasks with filtering."""
 
     permission_classes = [IsAuthenticated]
+    pagination_class = LargeResultsSetPagination
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -134,7 +173,11 @@ class TaskListCreateView(generics.ListCreateAPIView):
         return TaskListSerializer
 
     def get_queryset(self):
-        queryset = Task.objects.filter(user=self.request.user)
+        queryset = Task.objects.select_related(
+            'user', 'project', 'parent_task'
+        ).prefetch_related(
+            'labels'
+        ).filter(user=self.request.user)
 
         # Filter parameters
         project_id = self.request.query_params.get("project")
@@ -194,7 +237,11 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Task.objects.filter(user=self.request.user)
+        return Task.objects.select_related(
+            'user', 'project', 'parent_task'
+        ).prefetch_related(
+            'labels', 'comments__user', 'subtasks'
+        ).filter(user=self.request.user)
 
 
 class TaskQuickCreateView(generics.CreateAPIView):
@@ -264,20 +311,32 @@ class TaskCommentListCreateView(generics.ListCreateAPIView):
 
     serializer_class = TaskCommentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = SmallResultsSetPagination
 
     def get_queryset(self):
         task_id = self.kwargs["task_id"]
-        return TaskComment.objects.filter(
+        return TaskComment.objects.select_related(
+            'user', 'task'
+        ).filter(
             task__id=task_id, task__user=self.request.user
         )
 
     def get_serializer_context(self):
+        """Add task instance to serializer context for comment creation.
+        
+        This allows the serializer to automatically associate new comments
+        with the correct task while ensuring the user has access to that task.
+        
+        Returns:
+            dict: Enhanced context with task instance if accessible
+        """
         context = super().get_serializer_context()
         task_id = self.kwargs["task_id"]
         try:
             task = Task.objects.get(id=task_id, user=self.request.user)
             context["task"] = task
         except Task.DoesNotExist:
+            # Task not found or user doesn't have access - context remains unchanged
             pass
         return context
 
@@ -289,7 +348,9 @@ class TaskCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return TaskComment.objects.filter(
+        return TaskComment.objects.select_related(
+            'user', 'task'
+        ).filter(
             task__user=self.request.user, user=self.request.user
         )
 
@@ -318,29 +379,45 @@ class TaskCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([IsAuthenticated])
 def task_stats(request):
     """Get task statistics for the authenticated user."""
-    user_tasks = Task.objects.filter(user=request.user)
     today = timezone.now().date()
-
+    week_end = today + timedelta(days=7)
+    
+    # Get optimized aggregated stats in a single query
+    base_queryset = Task.objects.filter(user=request.user)
+    
+    # Use aggregation to count different types efficiently
+    stats_aggregate = base_queryset.aggregate(
+        total=Count('id'),
+        completed=Count('id', filter=Q(is_completed=True)),
+        pending=Count('id', filter=Q(is_completed=False)),
+        overdue=Count('id', filter=Q(due_date__lt=today, is_completed=False)),
+        today=Count('id', filter=Q(
+            (Q(date=today) | Q(due_date=today)) & Q(is_completed=False)
+        )),
+        this_week=Count('id', filter=Q(
+            (Q(date__lte=week_end) | Q(due_date__lte=week_end)) & Q(is_completed=False)
+        )),
+        p1_count=Count('id', filter=Q(priority='P1', is_completed=False)),
+        p2_count=Count('id', filter=Q(priority='P2', is_completed=False)),
+        p3_count=Count('id', filter=Q(priority='P3', is_completed=False)),
+        p4_count=Count('id', filter=Q(priority='P4', is_completed=False)),
+        none_count=Count('id', filter=Q(priority='', is_completed=False)),
+    )
+    
+    # Format response
     stats = {
-        "total": user_tasks.count(),
-        "completed": user_tasks.filter(is_completed=True).count(),
-        "pending": user_tasks.filter(is_completed=False).count(),
-        "overdue": user_tasks.filter(due_date__lt=today, is_completed=False).count(),
-        "today": user_tasks.filter(Q(date=today) | Q(due_date=today))
-        .filter(is_completed=False)
-        .count(),
-        "this_week": user_tasks.filter(
-            Q(date__lte=today + timedelta(days=7))
-            | Q(due_date__lte=today + timedelta(days=7))
-        )
-        .filter(is_completed=False)
-        .count(),
+        "total": stats_aggregate['total'],
+        "completed": stats_aggregate['completed'],
+        "pending": stats_aggregate['pending'],
+        "overdue": stats_aggregate['overdue'],
+        "today": stats_aggregate['today'],
+        "this_week": stats_aggregate['this_week'],
         "priority_breakdown": {
-            "P1": user_tasks.filter(priority="P1", is_completed=False).count(),
-            "P2": user_tasks.filter(priority="P2", is_completed=False).count(),
-            "P3": user_tasks.filter(priority="P3", is_completed=False).count(),
-            "P4": user_tasks.filter(priority="P4", is_completed=False).count(),
-            "none": user_tasks.filter(priority="", is_completed=False).count(),
+            "P1": stats_aggregate['p1_count'],
+            "P2": stats_aggregate['p2_count'],
+            "P3": stats_aggregate['p3_count'],
+            "P4": stats_aggregate['p4_count'],
+            "none": stats_aggregate['none_count'],
         },
     }
 
