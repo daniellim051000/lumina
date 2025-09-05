@@ -26,19 +26,22 @@ def postprocessing_hook(result, generator, request, public):
     if "paths" in result:
         for path, methods in result["paths"].items():
             for method, operation in methods.items():
-                # Add tags based on path patterns
+                # Clear existing auto-generated tags to avoid duplicates
+                operation["tags"] = []
+                
+                # Add clean tags based on path patterns
                 if "/tasks/" in path:
-                    operation.setdefault("tags", []).append("Tasks")
+                    operation["tags"].append("Tasks")
                 elif "/projects/" in path:
-                    operation.setdefault("tags", []).append("Projects")
+                    operation["tags"].append("Projects")
                 elif "/labels/" in path:
-                    operation.setdefault("tags", []).append("Labels")
+                    operation["tags"].append("Labels")
                 elif "/comments/" in path:
-                    operation.setdefault("tags", []).append("Comments")
+                    operation["tags"].append("Comments")
                 elif "/auth/" in path:
-                    operation.setdefault("tags", []).append("Authentication")
+                    operation["tags"].append("Authentication")
                 else:
-                    operation.setdefault("tags", []).append("General")
+                    operation["tags"].append("General")
 
     # Add authentication examples and custom responses
     if "components" in result:
