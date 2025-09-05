@@ -1,5 +1,4 @@
-"""
-WSGI config for lumina project.
+"""WSGI config for lumina project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +10,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lumina.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lumina.settings")
 
 application = get_wsgi_application()

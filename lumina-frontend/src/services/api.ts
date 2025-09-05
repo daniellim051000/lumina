@@ -242,28 +242,44 @@ class ApiService {
     }
   }
 
-  // Check if user is authenticated
+  /**
+   * Checks if the user is currently authenticated
+   * @returns {boolean} True if user has a valid access token
+   */
   isAuthenticated(): boolean {
     return !!this.accessToken;
   }
 
-  // Get current user from localStorage
+  /**
+   * Retrieves the current user data from localStorage
+   * @returns {User | null} User object if logged in, null otherwise
+   */
   getCurrentUser(): User | null {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   }
 
-  // Health check endpoint
+  /**
+   * Performs a health check on the API server
+   * @returns {Promise<HealthResponse>} Promise resolving to health status
+   */
   async getHealth(): Promise<HealthResponse> {
     return this.request<HealthResponse>('/health/');
   }
 
-  // API info endpoint
+  /**
+   * Retrieves API information from the server
+   * @returns {Promise<ApiInfoResponse>} Promise resolving to API information
+   */
   async getApiInfo(): Promise<ApiInfoResponse> {
     return this.request<ApiInfoResponse>('/info/');
   }
 
-  // Authentication methods
+  /**
+   * Registers a new user account
+   * @param {SignUpRequest} data User registration data
+   * @returns {Promise<AuthResponse>} Promise resolving to authentication response with tokens
+   */
   async signUp(data: SignUpRequest): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>('/auth/signup/', {
       method: 'POST',
@@ -277,6 +293,11 @@ class ApiService {
     return response;
   }
 
+  /**
+   * Authenticates a user with username/password
+   * @param {SignInRequest} data Login credentials
+   * @returns {Promise<AuthResponse>} Promise resolving to authentication response with tokens
+   */
   async signIn(data: SignInRequest): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>('/auth/signin/', {
       method: 'POST',
@@ -290,6 +311,10 @@ class ApiService {
     return response;
   }
 
+  /**
+   * Logs out the current user and clears all authentication data
+   * @returns {Promise<void>} Promise that resolves when logout is complete
+   */
   async logout(): Promise<void> {
     if (this.refreshToken) {
       try {
@@ -305,10 +330,19 @@ class ApiService {
     this.clearTokens();
   }
 
+  /**
+   * Retrieves the current user's profile information
+   * @returns {Promise<User>} Promise resolving to user profile data
+   */
   async getUserProfile(): Promise<User> {
     return this.request<User>('/auth/profile/');
   }
 
+  /**
+   * Updates the current user's profile information
+   * @param {Partial<User>} data Partial user data to update
+   * @returns {Promise<User>} Promise resolving to updated user profile data
+   */
   async updateUserProfile(data: Partial<User>): Promise<User> {
     const response = await this.request<User>('/auth/profile/', {
       method: 'PUT',
@@ -321,6 +355,11 @@ class ApiService {
     return response;
   }
 
+  /**
+   * Changes the current user's password
+   * @param {PasswordChangeRequest} data Password change data including current and new passwords
+   * @returns {Promise<PasswordChangeResponse>} Promise resolving to password change confirmation
+   */
   async changePassword(data: PasswordChangeRequest): Promise<PasswordChangeResponse> {
     return this.request<PasswordChangeResponse>('/auth/change-password/', {
       method: 'POST',

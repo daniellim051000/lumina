@@ -1,0 +1,30 @@
+[run]
+source = .
+omit = 
+    */venv/*
+    */migrations/*
+    */__pycache__/*
+    */tests/*
+    */test_*.py
+    manage.py
+    lumina/settings.py
+    lumina/wsgi.py
+    lumina/asgi.py
+    lumina/__init__.py
+    api/__init__.py
+    api/apps.py
+    api/admin.py
+    conftest.py
+    setup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+[html]
+directory = htmlcov

@@ -27,9 +27,6 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSuccess }) =
   const passwordRef = useRef<HTMLInputElement>(null);
 
   // Debug: Log every time formData changes
-  useEffect(() => {
-    console.log('🔍 SignIn: FormData changed to:', formData);
-  }, [formData]);
   
   // Store the username when form is submitted to preserve it on error
   const [submittedUsername, setSubmittedUsername] = useState('');
@@ -37,15 +34,12 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSuccess }) =
   // Handle error-specific form clearing after error state is updated
   useEffect(() => {
     if (error && submittedUsername) {
-      console.log('🔍 SignIn: useEffect triggered with error:', error, 'submittedUsername:', submittedUsername);
       const errorMessage = error.toLowerCase();
       const isPasswordError = errorMessage.includes('password') || 
                              errorMessage.includes('incorrect') || 
                              errorMessage.includes('invalid');
       
       if (isPasswordError) {
-        console.log('🔍 SignIn: useEffect restoring username and clearing password');
-        
         // Update state
         setFormData({
           username: submittedUsername,
@@ -55,14 +49,10 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSuccess }) =
         // Also directly set input values using refs to ensure UI updates
         if (usernameRef.current) {
           usernameRef.current.value = submittedUsername;
-          console.log('🔍 SignIn: Directly set username input to:', submittedUsername);
         }
         if (passwordRef.current) {
           passwordRef.current.value = '';
-          console.log('🔍 SignIn: Directly cleared password input');
         }
-        
-        console.log('🔍 SignIn: useEffect completed form restoration');
       }
     }
   }, [error, submittedUsername]);

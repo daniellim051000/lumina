@@ -65,8 +65,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.user);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
-      console.log('🔍 AuthContext: Sign in error caught:', error);
-      console.log('🔍 AuthContext: Error message being set:', errorMessage);
       setError(errorMessage);
       throw error;
     } finally {

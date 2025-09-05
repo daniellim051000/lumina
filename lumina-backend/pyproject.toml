@@ -75,5 +75,5 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-django = ["django"]
-section-order = ["future", "standard-library", "django", "third-party", "first-party", "local-folder"]
+known-third-party = ["django"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
