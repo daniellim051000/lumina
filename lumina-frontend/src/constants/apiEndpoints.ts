@@ -19,8 +19,8 @@ export const API_ENDPOINTS = {
 
   // User profile endpoints
   USER: {
-    PROFILE: '/users/profile/',
-    CHANGE_PASSWORD: '/users/change-password/',
+    PROFILE: '/auth/profile/',
+    CHANGE_PASSWORD: '/auth/change-password/',
   },
 
   // Future task management endpoints
