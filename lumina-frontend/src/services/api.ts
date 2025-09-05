@@ -47,6 +47,16 @@ export interface SignInRequest {
   password: string;
 }
 
+export interface PasswordChangeRequest {
+  current_password: string;
+  new_password: string;
+  new_password_confirm: string;
+}
+
+export interface PasswordChangeResponse {
+  message: string;
+}
+
 class ApiService {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
@@ -139,7 +149,90 @@ class ApiService {
       }
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        
+        try {
+          const errorData = await response.json();
+          
+          // Handle different error response formats
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+            errorMessage = errorData.non_field_errors.join(', ');
+          } else {
+            // Handle field-specific errors
+            const fieldErrors: string[] = [];
+            Object.keys(errorData).forEach(field => {
+              if (Array.isArray(errorData[field])) {
+                fieldErrors.push(...errorData[field]);
+              } else if (typeof errorData[field] === 'string') {
+                fieldErrors.push(errorData[field]);
+              }
+            });
+            
+            if (fieldErrors.length > 0) {
+              errorMessage = fieldErrors.join(', ');
+            }
+          }
+          
+          // Map common status codes to user-friendly messages if no specific message found
+          if (errorMessage.includes(`HTTP error! status: ${response.status}`)) {
+            switch (response.status) {
+              case 400:
+                errorMessage = 'Invalid request. Please check your input.';
+                break;
+              case 401:
+                errorMessage = 'Invalid username or password.';
+                break;
+              case 403:
+                errorMessage = 'Access denied. You do not have permission to perform this action.';
+                break;
+              case 404:
+                errorMessage = 'The requested resource was not found.';
+                break;
+              case 429:
+                errorMessage = 'Too many requests. Please wait before trying again.';
+                break;
+              case 500:
+                errorMessage = 'Server error. Please try again later.';
+                break;
+              default:
+                errorMessage = 'An unexpected error occurred. Please try again.';
+            }
+          }
+        } catch (parseError) {
+          // If we can't parse the response, use status-based messages
+          switch (response.status) {
+            case 400:
+              errorMessage = 'Invalid request. Please check your input.';
+              break;
+            case 401:
+              errorMessage = 'Invalid username or password.';
+              break;
+            case 403:
+              errorMessage = 'Access denied. You do not have permission to perform this action.';
+              break;
+            case 404:
+              errorMessage = 'The requested resource was not found.';
+              break;
+            case 429:
+              errorMessage = 'Too many requests. Please wait before trying again.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            default:
+              errorMessage = 'An unexpected error occurred. Please try again.';
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return await response.json();
@@ -226,6 +319,13 @@ class ApiService {
     localStorage.setItem('user', JSON.stringify(response));
     
     return response;
+  }
+
+  async changePassword(data: PasswordChangeRequest): Promise<PasswordChangeResponse> {
+    return this.request<PasswordChangeResponse>('/auth/change-password/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 }
 

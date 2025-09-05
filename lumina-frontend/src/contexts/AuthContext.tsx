@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiService, User, SignInRequest, SignUpRequest } from '../services/api';
+import { apiService, User, SignInRequest, SignUpRequest, PasswordChangeRequest } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -8,6 +8,8 @@ interface AuthContextType {
   signIn: (credentials: SignInRequest) => Promise<void>;
   signUp: (data: SignUpRequest) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
+  changePassword: (data: PasswordChangeRequest) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -63,6 +65,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.user);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      console.log('🔍 AuthContext: Sign in error caught:', error);
+      console.log('🔍 AuthContext: Error message being set:', errorMessage);
       setError(errorMessage);
       throw error;
     } finally {
@@ -102,6 +106,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const updatedUser = await apiService.updateUserProfile(data);
+      setUser(updatedUser);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (data: PasswordChangeRequest) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await apiService.changePassword(data);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Password change failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearError = () => {
     setError(null);
   };
@@ -113,6 +148,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     logout,
+    updateProfile,
+    changePassword,
     error,
     clearError,
   };

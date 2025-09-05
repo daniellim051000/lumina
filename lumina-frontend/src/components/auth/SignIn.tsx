@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { SignInRequest } from '../../services/api';
@@ -15,6 +15,59 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSuccess }) =
     username: '',
     password: '',
   });
+
+  // TODO: Username preservation feature - currently not working properly
+  // Issue: React state shows correct data but UI doesn't reflect it
+  // Future enhancement: Investigate controlled component synchronization issue
+  // GitHub Issue: https://github.com/your-org/lumina/issues/XX (to be created)
+  
+  /*
+  // Refs to directly control input values
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Debug: Log every time formData changes
+  useEffect(() => {
+    console.log('🔍 SignIn: FormData changed to:', formData);
+  }, [formData]);
+  
+  // Store the username when form is submitted to preserve it on error
+  const [submittedUsername, setSubmittedUsername] = useState('');
+  
+  // Handle error-specific form clearing after error state is updated
+  useEffect(() => {
+    if (error && submittedUsername) {
+      console.log('🔍 SignIn: useEffect triggered with error:', error, 'submittedUsername:', submittedUsername);
+      const errorMessage = error.toLowerCase();
+      const isPasswordError = errorMessage.includes('password') || 
+                             errorMessage.includes('incorrect') || 
+                             errorMessage.includes('invalid');
+      
+      if (isPasswordError) {
+        console.log('🔍 SignIn: useEffect restoring username and clearing password');
+        
+        // Update state
+        setFormData({
+          username: submittedUsername,
+          password: ''
+        });
+        
+        // Also directly set input values using refs to ensure UI updates
+        if (usernameRef.current) {
+          usernameRef.current.value = submittedUsername;
+          console.log('🔍 SignIn: Directly set username input to:', submittedUsername);
+        }
+        if (passwordRef.current) {
+          passwordRef.current.value = '';
+          console.log('🔍 SignIn: Directly cleared password input');
+        }
+        
+        console.log('🔍 SignIn: useEffect completed form restoration');
+      }
+    }
+  }, [error, submittedUsername]);
+  */
+
   const [formErrors, setFormErrors] = useState<Partial<SignInRequest>>({});
 
   const validateForm = (): boolean => {
@@ -44,7 +97,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSuccess }) =
       await signIn(formData);
       onSuccess?.();
     } catch (error) {
-      // Error is handled by AuthContext
+      // Error is handled by AuthContext and displayed in UI
     }
   };
 

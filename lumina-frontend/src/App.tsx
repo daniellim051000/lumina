@@ -5,6 +5,7 @@ import { Sidebar, SidebarProvider, useSidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
 import { Dashboard } from './pages/Dashboard';
 import { TasksPage } from './pages/Tasks';
+import { Settings } from './pages/Settings';
 import { NotFoundPage } from './pages/NotFound';
 import { injectCSSVariables } from './utils/cssVariables';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -59,10 +60,7 @@ const AppContent: React.FC = () => {
             path="/calendar"
             element={<ComingSoonPage section="Calendar" />}
           />
-          <Route
-            path="/settings"
-            element={<ComingSoonPage section="Settings" />}
-          />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
