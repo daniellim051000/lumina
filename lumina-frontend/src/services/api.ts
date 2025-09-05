@@ -3,6 +3,17 @@
  * token management, and exponential backoff for retry logic.
  */
 import { API_ENDPOINTS, TOKEN_REFRESH } from '../constants/apiEndpoints';
+import {
+  Task,
+  TaskListItem,
+  TaskQuickCreate,
+  TaskFilters,
+  TaskStats,
+  TaskBulkUpdate,
+  Project,
+  Label,
+  TaskComment,
+} from '../types/task';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -404,6 +415,308 @@ class ApiService {
         body: JSON.stringify(data),
       }
     );
+  }
+
+  // ========================
+  // TASK MANAGEMENT METHODS
+  // ========================
+
+  /**
+   * Retrieves tasks with optional filtering
+   * @param {TaskFilters} filters Optional filters for tasks
+   * @returns {Promise<TaskListItem[]>} Promise resolving to list of tasks
+   */
+  async getTasks(filters?: TaskFilters): Promise<TaskListItem[]> {
+    const params = new globalThis.URLSearchParams();
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const endpoint = params.toString()
+      ? `${API_ENDPOINTS.TASKS.LIST}?${params.toString()}`
+      : API_ENDPOINTS.TASKS.LIST;
+
+    const response = await this.request<{
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: TaskListItem[];
+    }>(endpoint);
+
+    // Extract the results array from the paginated response
+    return response.results || [];
+  }
+
+  /**
+   * Retrieves a single task by ID
+   * @param {number} taskId Task ID
+   * @returns {Promise<Task>} Promise resolving to task details
+   */
+  async getTask(taskId: number): Promise<Task> {
+    return this.request<Task>(API_ENDPOINTS.TASKS.DETAIL(taskId));
+  }
+
+  /**
+   * Creates a new task
+   * @param {Partial<Task>} taskData Task data to create
+   * @returns {Promise<Task>} Promise resolving to created task
+   */
+  async createTask(taskData: Partial<Task>): Promise<Task> {
+    return this.request<Task>(API_ENDPOINTS.TASKS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(taskData),
+    });
+  }
+
+  /**
+   * Creates a new task with minimal fields (quick create)
+   * @param {TaskQuickCreate} taskData Minimal task data
+   * @returns {Promise<Task>} Promise resolving to created task
+   */
+  async createTaskQuick(taskData: TaskQuickCreate): Promise<Task> {
+    return this.request<Task>(API_ENDPOINTS.TASKS.QUICK_CREATE, {
+      method: 'POST',
+      body: JSON.stringify(taskData),
+    });
+  }
+
+  /**
+   * Updates an existing task
+   * @param {number} taskId Task ID
+   * @param {Partial<Task>} taskData Task data to update
+   * @returns {Promise<Task>} Promise resolving to updated task
+   */
+  async updateTask(taskId: number, taskData: Partial<Task>): Promise<Task> {
+    return this.request<Task>(API_ENDPOINTS.TASKS.UPDATE(taskId), {
+      method: 'PUT',
+      body: JSON.stringify(taskData),
+    });
+  }
+
+  /**
+   * Deletes a task
+   * @param {number} taskId Task ID
+   * @returns {Promise<void>} Promise resolving when task is deleted
+   */
+  async deleteTask(taskId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.TASKS.DELETE(taskId), {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Performs bulk operations on tasks
+   * @param {TaskBulkUpdate} bulkData Bulk update data
+   * @returns {Promise<{message: string}>} Promise resolving to operation result
+   */
+  async bulkUpdateTasks(
+    bulkData: TaskBulkUpdate
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>(API_ENDPOINTS.TASKS.BULK_UPDATE, {
+      method: 'PATCH',
+      body: JSON.stringify(bulkData),
+    });
+  }
+
+  /**
+   * Retrieves task statistics
+   * @returns {Promise<TaskStats>} Promise resolving to task statistics
+   */
+  async getTaskStats(): Promise<TaskStats> {
+    return this.request<TaskStats>(API_ENDPOINTS.TASKS.STATS);
+  }
+
+  // ========================
+  // PROJECT MANAGEMENT METHODS
+  // ========================
+
+  /**
+   * Retrieves all projects
+   * @returns {Promise<Project[]>} Promise resolving to list of projects
+   */
+  async getProjects(): Promise<Project[]> {
+    const response = await this.request<
+      | {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: Project[];
+        }
+      | Project[]
+    >(API_ENDPOINTS.PROJECTS.LIST);
+
+    // Handle both paginated and non-paginated responses
+    return Array.isArray(response) ? response : response.results || [];
+  }
+
+  /**
+   * Creates a new project
+   * @param {Partial<Project>} projectData Project data
+   * @returns {Promise<Project>} Promise resolving to created project
+   */
+  async createProject(projectData: Partial<Project>): Promise<Project> {
+    return this.request<Project>(API_ENDPOINTS.PROJECTS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    });
+  }
+
+  /**
+   * Updates an existing project
+   * @param {number} projectId Project ID
+   * @param {Partial<Project>} projectData Project data to update
+   * @returns {Promise<Project>} Promise resolving to updated project
+   */
+  async updateProject(
+    projectId: number,
+    projectData: Partial<Project>
+  ): Promise<Project> {
+    return this.request<Project>(API_ENDPOINTS.PROJECTS.UPDATE(projectId), {
+      method: 'PUT',
+      body: JSON.stringify(projectData),
+    });
+  }
+
+  /**
+   * Deletes a project (soft delete)
+   * @param {number} projectId Project ID
+   * @returns {Promise<void>} Promise resolving when project is deleted
+   */
+  async deleteProject(projectId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.PROJECTS.DELETE(projectId), {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================
+  // LABEL MANAGEMENT METHODS
+  // ========================
+
+  /**
+   * Retrieves all labels
+   * @returns {Promise<Label[]>} Promise resolving to list of labels
+   */
+  async getLabels(): Promise<Label[]> {
+    const response = await this.request<
+      | {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: Label[];
+        }
+      | Label[]
+    >(API_ENDPOINTS.LABELS.LIST);
+
+    // Handle both paginated and non-paginated responses
+    return Array.isArray(response) ? response : response.results || [];
+  }
+
+  /**
+   * Creates a new label
+   * @param {Partial<Label>} labelData Label data
+   * @returns {Promise<Label>} Promise resolving to created label
+   */
+  async createLabel(labelData: Partial<Label>): Promise<Label> {
+    return this.request<Label>(API_ENDPOINTS.LABELS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(labelData),
+    });
+  }
+
+  /**
+   * Updates an existing label
+   * @param {number} labelId Label ID
+   * @param {Partial<Label>} labelData Label data to update
+   * @returns {Promise<Label>} Promise resolving to updated label
+   */
+  async updateLabel(
+    labelId: number,
+    labelData: Partial<Label>
+  ): Promise<Label> {
+    return this.request<Label>(API_ENDPOINTS.LABELS.UPDATE(labelId), {
+      method: 'PUT',
+      body: JSON.stringify(labelData),
+    });
+  }
+
+  /**
+   * Deletes a label
+   * @param {number} labelId Label ID
+   * @returns {Promise<void>} Promise resolving when label is deleted
+   */
+  async deleteLabel(labelId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.LABELS.DELETE(labelId), {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================
+  // TASK COMMENT METHODS
+  // ========================
+
+  /**
+   * Retrieves comments for a task
+   * @param {number} taskId Task ID
+   * @returns {Promise<TaskComment[]>} Promise resolving to list of comments
+   */
+  async getTaskComments(taskId: number): Promise<TaskComment[]> {
+    return this.request<TaskComment[]>(
+      API_ENDPOINTS.TASKS.COMMENTS.LIST(taskId)
+    );
+  }
+
+  /**
+   * Creates a new comment on a task
+   * @param {number} taskId Task ID
+   * @param {string} content Comment content
+   * @returns {Promise<TaskComment>} Promise resolving to created comment
+   */
+  async createTaskComment(
+    taskId: number,
+    content: string
+  ): Promise<TaskComment> {
+    return this.request<TaskComment>(
+      API_ENDPOINTS.TASKS.COMMENTS.CREATE(taskId),
+      {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      }
+    );
+  }
+
+  /**
+   * Updates a task comment
+   * @param {number} commentId Comment ID
+   * @param {string} content Updated comment content
+   * @returns {Promise<TaskComment>} Promise resolving to updated comment
+   */
+  async updateTaskComment(
+    commentId: number,
+    content: string
+  ): Promise<TaskComment> {
+    return this.request<TaskComment>(
+      API_ENDPOINTS.TASKS.COMMENTS.UPDATE(commentId),
+      {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      }
+    );
+  }
+
+  /**
+   * Deletes a task comment
+   * @param {number} commentId Comment ID
+   * @returns {Promise<void>} Promise resolving when comment is deleted
+   */
+  async deleteTaskComment(commentId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.TASKS.COMMENTS.DELETE(commentId), {
+      method: 'DELETE',
+    });
   }
 }
 

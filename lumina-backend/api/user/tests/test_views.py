@@ -22,11 +22,11 @@ class TestSignUpView:
         # Tokens are now set as httpOnly cookies, not in response body
         assert "access_token" not in response.data
         assert "refresh_token" not in response.data
-        
+
         # Verify cookies are set
         assert "jwt_access_token" in response.cookies
         assert "jwt_refresh_token" in response.cookies
-        
+
         # Verify cookie security attributes
         access_cookie = response.cookies["jwt_access_token"]
         refresh_cookie = response.cookies["jwt_refresh_token"]
@@ -102,11 +102,11 @@ class TestSignInView:
         # Tokens are now set as httpOnly cookies, not in response body
         assert "access_token" not in response.data
         assert "refresh_token" not in response.data
-        
+
         # Verify cookies are set
         assert "jwt_access_token" in response.cookies
         assert "jwt_refresh_token" in response.cookies
-        
+
         # Verify cookie security attributes
         access_cookie = response.cookies["jwt_access_token"]
         refresh_cookie = response.cookies["jwt_refresh_token"]

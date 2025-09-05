@@ -10,7 +10,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +46,7 @@ def clear_jwt_cookies(response):
         samesite=settings.JWT_COOKIE_SAMESITE,
     )
     return response
+
 
 from .serializers import (
     PasswordChangeSerializer,
@@ -158,7 +158,7 @@ class LogoutView(APIView):
             refresh_token = request.COOKIES.get(settings.JWT_REFRESH_COOKIE_NAME)
             if not refresh_token:
                 refresh_token = request.data.get("refresh_token")
-            
+
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
@@ -168,7 +168,9 @@ class LogoutView(APIView):
                     f"Logout attempt without refresh token: {request.user.username}"
                 )
 
-            response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+            response = Response(
+                {"message": "Logout successful"}, status=status.HTTP_200_OK
+            )
             return clear_jwt_cookies(response)
         except Exception as e:
             logger.error(f"Logout failed for user {request.user.username}: {str(e)}")
@@ -217,13 +219,12 @@ class PasswordChangeView(APIView):
 
 
 class JWTCookieTokenRefreshView(APIView):
-    """
-    Custom token refresh view that reads refresh token from cookies
+    """Custom token refresh view that reads refresh token from cookies
     and sets new access token as httpOnly cookie.
     """
-    
+
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         """Handle token refresh using cookies."""
         try:
@@ -232,31 +233,33 @@ class JWTCookieTokenRefreshView(APIView):
             if not refresh_token:
                 return Response(
                     {"error": "Refresh token not found"},
-                    status=status.HTTP_401_UNAUTHORIZED
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
-            
+
             # Create refresh token instance and get new access token
             token = RefreshToken(refresh_token)
             new_access_token = str(token.access_token)
-            
+
             # If rotation is enabled, get new refresh token
-            new_refresh_token = str(token) if settings.SIMPLE_JWT.get('ROTATE_REFRESH_TOKENS', False) else refresh_token
-            
+            new_refresh_token = (
+                str(token)
+                if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS", False)
+                else refresh_token
+            )
+
             tokens = {
                 "access_token": new_access_token,
-                "refresh_token": new_refresh_token
+                "refresh_token": new_refresh_token,
             }
-            
+
             response = Response(
-                {"message": "Token refreshed successfully"},
-                status=status.HTTP_200_OK
+                {"message": "Token refreshed successfully"}, status=status.HTTP_200_OK
             )
-            
+
             return set_jwt_cookies(response, tokens)
-            
+
         except Exception as e:
             logger.error(f"Token refresh failed: {str(e)}")
             return Response(
-                {"error": "Token refresh failed"},
-                status=status.HTTP_401_UNAUTHORIZED
+                {"error": "Token refresh failed"}, status=status.HTTP_401_UNAUTHORIZED
             )

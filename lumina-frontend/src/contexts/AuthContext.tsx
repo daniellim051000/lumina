@@ -45,24 +45,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setIsLoading(true);
+      console.log('[AUTH] Initializing authentication...');
 
       // Check if user is already authenticated
-      if (apiService.isAuthenticated()) {
+      const isAuth = apiService.isAuthenticated();
+      console.log('[AUTH] Is authenticated:', isAuth);
+
+      if (isAuth) {
         const storedUser = apiService.getCurrentUser();
+        console.log('[AUTH] Stored user:', storedUser);
+
         if (storedUser) {
           // Verify token is still valid by fetching fresh user data
           try {
+            console.log('[AUTH] Fetching fresh user profile...');
             const freshUser = await apiService.getUserProfile();
+            console.log('[AUTH] Fresh user data:', freshUser);
             setUser(freshUser);
-          } catch {
+          } catch (error) {
+            console.log(
+              '[AUTH] Failed to fetch fresh user, using stored data:',
+              error
+            );
             // Token might be expired, try with stored user data
             setUser(storedUser);
           }
         }
+      } else {
+        console.log('[AUTH] User not authenticated, will show auth page');
       }
-    } catch {
+    } catch (error) {
+      console.error('[AUTH] Failed to initialize authentication:', error);
       setError('Failed to initialize authentication');
     } finally {
+      console.log('[AUTH] Authentication initialization complete');
       setIsLoading(false);
     }
   };

@@ -1,42 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { mockTasks } from '../data/mockTasks';
-import { TaskStatus } from '../types/task';
-import { format } from 'date-fns';
-import { isDateToday, isDateOverdue } from '../utils/dateHelpers';
 
 export const Dashboard: React.FC = () => {
-  const todaysTasks = mockTasks.filter(task => {
-    if (task.status === TaskStatus.COMPLETED) return false;
-    return isDateToday(task.dueDate);
-  });
-
-  const upcomingTasks = mockTasks
-    .filter(task => {
-      if (task.status === TaskStatus.COMPLETED) return false;
-      if (!task.dueDate) return false;
-
-      const today = new Date();
-      const taskDate = new Date(task.dueDate);
-      return taskDate > today;
-    })
-    .slice(0, 5);
-
-  const recentlyCompleted = mockTasks
-    .filter(task => task.status === TaskStatus.COMPLETED)
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    .slice(0, 3);
-
-  const stats = {
-    total: mockTasks.length,
-    completed: mockTasks.filter(t => t.status === TaskStatus.COMPLETED).length,
-    inProgress: mockTasks.filter(t => t.status === TaskStatus.IN_PROGRESS)
-      .length,
-    overdue: mockTasks.filter(
-      t => isDateOverdue(t.dueDate) && t.status !== TaskStatus.COMPLETED
-    ).length,
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Welcome Header */}
@@ -53,9 +18,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <div className="text-2xl mr-3">📋</div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">
-                {stats.total}
-              </div>
+              <div className="text-2xl font-bold text-gray-900">0</div>
               <div className="text-sm text-gray-600">Total Tasks</div>
             </div>
           </div>
@@ -65,9 +28,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <div className="text-2xl mr-3">✅</div>
             <div>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.completed}
-              </div>
+              <div className="text-2xl font-bold text-green-600">0</div>
               <div className="text-sm text-gray-600">Completed</div>
             </div>
           </div>
@@ -77,9 +38,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <div className="text-2xl mr-3">🔄</div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.inProgress}
-              </div>
+              <div className="text-2xl font-bold text-blue-600">0</div>
               <div className="text-sm text-gray-600">In Progress</div>
             </div>
           </div>
@@ -89,9 +48,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <div className="text-2xl mr-3">⚠️</div>
             <div>
-              <div className="text-2xl font-bold text-red-600">
-                {stats.overdue}
-              </div>
+              <div className="text-2xl font-bold text-red-600">0</div>
               <div className="text-sm text-gray-600">Overdue</div>
             </div>
           </div>
@@ -105,7 +62,7 @@ export const Dashboard: React.FC = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Today&apos;s Tasks ({todaysTasks.length})
+                  Today&apos;s Tasks
                 </h2>
                 <Link
                   to="/tasks"
@@ -117,50 +74,22 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="p-6">
-              {todaysTasks.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-4">🎉</div>
-                  <p className="text-gray-600">
-                    No tasks due today. Great job!
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {todaysTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="flex items-center p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">
-                          {task.title}
-                        </h3>
-                        <div className="flex items-center mt-1 space-x-2">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                              task.priority === 'high'
-                                ? 'bg-red-100 text-red-800'
-                                : task.priority === 'medium'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                            }`}
-                          >
-                            {task.priority}
-                          </span>
-                          {task.project && (
-                            <span className="text-xs text-gray-600">
-                              • {task.project}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Due {format(new Date(task.dueDate!), 'h:mm a')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📝</div>
+                <p className="text-gray-600 mb-4">
+                  Welcome to your task management dashboard!
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  Start by creating your first task to see your productivity
+                  stats.
+                </p>
+                <Link
+                  to="/tasks"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  ➕ Create Your First Task
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -197,60 +126,34 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Upcoming Tasks */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Upcoming
+          {/* Getting Started */}
+          <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">
+              🚀 Getting Started
             </h3>
-            {upcomingTasks.length === 0 ? (
-              <p className="text-sm text-gray-600">No upcoming tasks</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {task.title}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {task.project}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {format(new Date(task.dueDate!), 'MMM d')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="text-sm text-blue-700 mb-4">
+              Your comprehensive task management system is ready! Here&apos;s
+              what you can do:
+            </p>
+            <ul className="text-sm text-blue-600 space-y-2">
+              <li className="flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Create tasks with priorities (P1-P4)
+              </li>
+              <li className="flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Organize with projects & labels
+              </li>
+              <li className="flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Use keyboard shortcuts (Ctrl+N, Ctrl+F)
+              </li>
+              <li className="flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Add rich notes like Notion
+              </li>
+            </ul>
           </div>
-
-          {/* Recently Completed */}
-          {recentlyCompleted.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Recently Completed
-              </h3>
-              <div className="space-y-3">
-                {recentlyCompleted.map(task => (
-                  <div key={task.id} className="flex items-center">
-                    <span className="text-green-500 mr-2">✅</span>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 line-through">
-                        {task.title}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {format(task.updatedAt, 'MMM d, h:mm a')}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

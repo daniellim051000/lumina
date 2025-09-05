@@ -23,13 +23,41 @@ export const API_ENDPOINTS = {
     CHANGE_PASSWORD: '/auth/change-password/',
   },
 
-  // Future task management endpoints
+  // Task management endpoints
   TASKS: {
     LIST: '/tasks/',
     CREATE: '/tasks/',
     DETAIL: (id: number) => `/tasks/${id}/`,
     UPDATE: (id: number) => `/tasks/${id}/`,
     DELETE: (id: number) => `/tasks/${id}/`,
+    QUICK_CREATE: '/tasks/quick/',
+    BULK_UPDATE: '/tasks/bulk/',
+    STATS: '/tasks/stats/',
+    COMMENTS: {
+      LIST: (taskId: number) => `/tasks/${taskId}/comments/`,
+      CREATE: (taskId: number) => `/tasks/${taskId}/comments/`,
+      DETAIL: (commentId: number) => `/comments/${commentId}/`,
+      UPDATE: (commentId: number) => `/comments/${commentId}/`,
+      DELETE: (commentId: number) => `/comments/${commentId}/`,
+    },
+  },
+
+  // Project management endpoints
+  PROJECTS: {
+    LIST: '/projects/',
+    CREATE: '/projects/',
+    DETAIL: (id: number) => `/projects/${id}/`,
+    UPDATE: (id: number) => `/projects/${id}/`,
+    DELETE: (id: number) => `/projects/${id}/`,
+  },
+
+  // Label management endpoints
+  LABELS: {
+    LIST: '/labels/',
+    CREATE: '/labels/',
+    DETAIL: (id: number) => `/labels/${id}/`,
+    UPDATE: (id: number) => `/labels/${id}/`,
+    DELETE: (id: number) => `/labels/${id}/`,
   },
 } as const;
 
