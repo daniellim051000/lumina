@@ -27,13 +27,15 @@ export const Settings: React.FC = () => {
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-gray-600">Manage your account and security preferences</p>
+        <p className="text-gray-600">
+          Manage your account and security preferences
+        </p>
       </div>
 
       {/* Tabs Navigation */}
       <div className="border-b border-gray-200 mb-8">
         <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => (
+          {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -55,7 +57,9 @@ export const Settings: React.FC = () => {
         {activeTab === 'profile' && (
           <div>
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Profile Information</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                Profile Information
+              </h2>
               <p className="text-gray-600 text-sm">
                 Update your personal information and account details.
               </p>
@@ -67,7 +71,9 @@ export const Settings: React.FC = () => {
         {activeTab === 'security' && (
           <div>
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Security Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                Security Settings
+              </h2>
               <p className="text-gray-600 text-sm">
                 Manage your password and security preferences.
               </p>

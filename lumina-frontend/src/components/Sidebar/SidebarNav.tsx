@@ -51,7 +51,9 @@ export const SidebarNav: React.FC = () => {
               {!isCollapsed && (
                 <div className="ml-3 truncate">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {user.first_name ? `${user.first_name} ${user.last_name}`.trim() : user.username}
+                    {user.first_name
+                      ? `${user.first_name} ${user.last_name}`.trim()
+                      : user.username}
                   </p>
                   <p className="text-xs text-gray-500 truncate">{user.email}</p>
                 </div>

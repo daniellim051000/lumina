@@ -44,7 +44,7 @@ export const ProfileForm: React.FC = () => {
     try {
       await updateProfile(formData);
       setSuccess(true);
-    } catch (error) {
+    } catch {
       // Error handling is done in AuthContext
     }
   };
@@ -74,9 +74,7 @@ export const ProfileForm: React.FC = () => {
         <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
             <div className="ml-3">
-              <p className="text-sm font-medium text-red-800">
-                ❌ {error}
-              </p>
+              <p className="text-sm font-medium text-red-800">❌ {error}</p>
             </div>
           </div>
         </div>
@@ -84,7 +82,10 @@ export const ProfileForm: React.FC = () => {
 
       {/* Username (Read-only) */}
       <div>
-        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="username"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Username
         </label>
         <input
@@ -99,7 +100,10 @@ export const ProfileForm: React.FC = () => {
 
       {/* Email */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Email <span className="text-red-500">*</span>
         </label>
         <input
@@ -116,7 +120,10 @@ export const ProfileForm: React.FC = () => {
 
       {/* First Name */}
       <div>
-        <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="first_name"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           First Name
         </label>
         <input
@@ -132,7 +139,10 @@ export const ProfileForm: React.FC = () => {
 
       {/* Last Name */}
       <div>
-        <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="last_name"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Last Name
         </label>
         <input
@@ -148,10 +158,19 @@ export const ProfileForm: React.FC = () => {
 
       {/* Account Info */}
       <div className="bg-gray-50 rounded-md p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Account Information</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-2">
+          Account Information
+        </h3>
         <div className="text-xs text-gray-500 space-y-1">
-          <p><strong>User ID:</strong> {user?.id}</p>
-          <p><strong>Date Joined:</strong> {user?.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A'}</p>
+          <p>
+            <strong>User ID:</strong> {user?.id}
+          </p>
+          <p>
+            <strong>Date Joined:</strong>{' '}
+            {user?.date_joined
+              ? new Date(user.date_joined).toLocaleDateString()
+              : 'N/A'}
+          </p>
         </div>
       </div>
 

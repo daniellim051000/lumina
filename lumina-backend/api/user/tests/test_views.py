@@ -1,7 +1,5 @@
 """Unit tests for user views."""
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -21,8 +19,21 @@ class TestSignUpView:
         assert response.status_code == status.HTTP_201_CREATED
         assert "message" in response.data
         assert "user" in response.data
-        assert "access_token" in response.data
-        assert "refresh_token" in response.data
+        # Tokens are now set as httpOnly cookies, not in response body
+        assert "access_token" not in response.data
+        assert "refresh_token" not in response.data
+        
+        # Verify cookies are set
+        assert "jwt_access_token" in response.cookies
+        assert "jwt_refresh_token" in response.cookies
+        
+        # Verify cookie security attributes
+        access_cookie = response.cookies["jwt_access_token"]
+        refresh_cookie = response.cookies["jwt_refresh_token"]
+        assert access_cookie["httponly"]
+        assert refresh_cookie["httponly"]
+        assert access_cookie["samesite"] == "Lax"
+        assert refresh_cookie["samesite"] == "Lax"
 
         # Verify user was created
         user = User.objects.get(username=user_data["username"])
@@ -54,16 +65,21 @@ class TestSignUpView:
     def test_signup_rate_limiting(self, api_client, user_data):
         """Test rate limiting decorator is applied to signup view."""
         from api.user.views import SignUpView
-        
+
         # Verify the ratelimit decorator is applied to the view
         # Check that the view has the decorator's wrapper attributes
         view_instance = SignUpView()
-        post_method = getattr(view_instance, 'post')
-        
+        post_method = view_instance.post
+
         # The ratelimit decorator adds attributes to the wrapped method
         # We can check if these exist to verify the decorator is applied
-        assert hasattr(post_method, '__wrapped__') or hasattr(post_method.__class__, '__wrapped__') or hasattr(view_instance.__class__, '__wrapped__') or 'ratelimit' in str(view_instance.__class__.post)
-        
+        assert (
+            hasattr(post_method, "__wrapped__")
+            or hasattr(post_method.__class__, "__wrapped__")
+            or hasattr(view_instance.__class__, "__wrapped__")
+            or "ratelimit" in str(view_instance.__class__.post)
+        )
+
         # Also test that the endpoint works normally
         url = reverse("user-signup")
         response = api_client.post(url, user_data, format="json")
@@ -83,8 +99,19 @@ class TestSignInView:
         assert response.status_code == status.HTTP_200_OK
         assert "message" in response.data
         assert "user" in response.data
-        assert "access_token" in response.data
-        assert "refresh_token" in response.data
+        # Tokens are now set as httpOnly cookies, not in response body
+        assert "access_token" not in response.data
+        assert "refresh_token" not in response.data
+        
+        # Verify cookies are set
+        assert "jwt_access_token" in response.cookies
+        assert "jwt_refresh_token" in response.cookies
+        
+        # Verify cookie security attributes
+        access_cookie = response.cookies["jwt_access_token"]
+        refresh_cookie = response.cookies["jwt_refresh_token"]
+        assert access_cookie["httponly"]
+        assert refresh_cookie["httponly"]
 
     @pytest.mark.django_db
     def test_signin_invalid_credentials(self, api_client, invalid_login_data):
@@ -111,14 +138,19 @@ class TestSignInView:
     def test_signin_rate_limiting(self, api_client, user, login_data):
         """Test rate limiting decorator is applied to signin view."""
         from api.user.views import SignInView
-        
+
         # Verify the ratelimit decorator is applied to the view
         view_instance = SignInView()
-        post_method = getattr(view_instance, 'post')
-        
+        post_method = view_instance.post
+
         # The ratelimit decorator adds attributes to the wrapped method
-        assert hasattr(post_method, '__wrapped__') or hasattr(post_method.__class__, '__wrapped__') or hasattr(view_instance.__class__, '__wrapped__') or 'ratelimit' in str(view_instance.__class__.post)
-        
+        assert (
+            hasattr(post_method, "__wrapped__")
+            or hasattr(post_method.__class__, "__wrapped__")
+            or hasattr(view_instance.__class__, "__wrapped__")
+            or "ratelimit" in str(view_instance.__class__.post)
+        )
+
         # Also test that the endpoint works normally
         url = reverse("user-signin")
         response = api_client.post(url, login_data, format="json")

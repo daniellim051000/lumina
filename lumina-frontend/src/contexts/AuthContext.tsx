@@ -1,5 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiService, User, SignInRequest, SignUpRequest, PasswordChangeRequest } from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+import {
+  apiService,
+  User,
+  SignInRequest,
+  SignUpRequest,
+  PasswordChangeRequest,
+} from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -33,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setIsLoading(true);
-      
+
       // Check if user is already authenticated
       if (apiService.isAuthenticated()) {
         const storedUser = apiService.getCurrentUser();
@@ -42,14 +54,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const freshUser = await apiService.getUserProfile();
             setUser(freshUser);
-          } catch (error) {
+          } catch {
             // Token might be expired, try with stored user data
             setUser(storedUser);
           }
         }
       }
-    } catch (error) {
-      console.error('Auth initialization failed:', error);
+    } catch {
       setError('Failed to initialize authentication');
     } finally {
       setIsLoading(false);
@@ -60,11 +71,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await apiService.signIn(credentials);
       setUser(response.user);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Sign in failed';
       setError(errorMessage);
       throw error;
     } finally {
@@ -76,11 +88,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await apiService.signUp(data);
       setUser(response.user);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign up failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Sign up failed';
       setError(errorMessage);
       throw error;
     } finally {
@@ -92,11 +105,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       await apiService.logout();
       setUser(null);
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
       // Even if logout request fails, clear local state
       setUser(null);
     } finally {
@@ -108,11 +120,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const updatedUser = await apiService.updateUserProfile(data);
       setUser(updatedUser);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Profile update failed';
       setError(errorMessage);
       throw error;
     } finally {
@@ -124,10 +137,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       await apiService.changePassword(data);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Password change failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Password change failed';
       setError(errorMessage);
       throw error;
     } finally {
@@ -152,11 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

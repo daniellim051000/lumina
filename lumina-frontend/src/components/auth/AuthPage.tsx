@@ -6,8 +6,8 @@ interface AuthPageProps {
   initialMode?: 'signin' | 'signup';
 }
 
-export const AuthPage: React.FC<AuthPageProps> = ({ 
-  initialMode = 'signin' 
+export const AuthPage: React.FC<AuthPageProps> = ({
+  initialMode = 'signin',
 }) => {
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
 
@@ -26,8 +26,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             Welcome to Lumina
           </h1>
           <p className="text-xl text-blue-100 leading-relaxed">
-            Your personal productivity companion. Organize tasks, track progress, 
-            and stay focused on what matters most.
+            Your personal productivity companion. Organize tasks, track
+            progress, and stay focused on what matters most.
           </p>
           <div className="mt-8 space-y-4">
             <div className="flex items-center text-blue-100">

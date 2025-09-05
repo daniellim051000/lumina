@@ -160,7 +160,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "api.authentication.JWTCookieAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",  # Fallback
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -216,3 +217,29 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
 }
+
+# Rate Limiting Configuration
+RATELIMIT_USE_CACHE = "default"
+AUTH_SIGNUP_RATE_LIMIT = config("AUTH_SIGNUP_RATE_LIMIT", default="5/m")
+AUTH_SIGNIN_RATE_LIMIT = config("AUTH_SIGNIN_RATE_LIMIT", default="5/m")
+
+# Cookie Security Settings for JWT
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
+
+# Cookie settings for JWT tokens
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)  # Set to True in production
+SESSION_COOKIE_SAMESITE = config("COOKIE_SAMESITE", default="Lax")
+
+# Custom cookie settings for JWT
+JWT_COOKIE_NAME = "jwt_access_token"
+JWT_REFRESH_COOKIE_NAME = "jwt_refresh_token"
+JWT_COOKIE_MAX_AGE = 15 * 60  # 15 minutes for access token
+JWT_REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days for refresh token
+JWT_COOKIE_HTTPONLY = True
+JWT_COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)  # Set to True in production with HTTPS
+JWT_COOKIE_SAMESITE = config("COOKIE_SAMESITE", default="Lax")

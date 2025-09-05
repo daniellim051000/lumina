@@ -1,4 +1,9 @@
-// API service for backend communication
+/**
+ * API service for backend communication with comprehensive error handling,
+ * token management, and exponential backoff for retry logic.
+ */
+import { API_ENDPOINTS, TOKEN_REFRESH } from '../constants/apiEndpoints';
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -29,8 +34,7 @@ export interface User {
 export interface AuthResponse {
   message: string;
   user: User;
-  access_token: string;
-  refresh_token: string;
+  // Note: tokens are now handled via httpOnly cookies, not in response body
 }
 
 export interface SignUpRequest {
@@ -58,62 +62,85 @@ export interface PasswordChangeResponse {
 }
 
 class ApiService {
-  private accessToken: string | null = null;
-  private refreshToken: string | null = null;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor() {
-    // Initialize tokens from storage on app start
-    this.loadTokens();
+    // Note: With httpOnly cookies, we don't need to manage tokens in JS
+    // The browser will automatically send cookies with requests
   }
 
-  private loadTokens() {
-    this.accessToken = localStorage.getItem('access_token');
-    this.refreshToken = localStorage.getItem('refresh_token');
-  }
-
-  private saveTokens(accessToken: string, refreshToken: string) {
-    this.accessToken = accessToken;
-    this.refreshToken = refreshToken;
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-  }
-
-  private clearTokens() {
-    this.accessToken = null;
-    this.refreshToken = null;
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+  private clearUserData() {
+    // Only clear user data from localStorage, cookies are handled by the backend
     localStorage.removeItem('user');
   }
 
-  private async refreshAccessToken(): Promise<string | null> {
-    if (!this.refreshToken) return null;
+  /**
+   * Sleep utility for exponential backoff
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          refresh: this.refreshToken,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.accessToken = data.access;
-        localStorage.setItem('access_token', data.access);
-        return data.access;
-      } else {
-        this.clearTokens();
-        return null;
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      this.clearTokens();
-      return null;
+  /**
+   * Refresh access token with exponential backoff retry logic.
+   * Uses a promise to prevent multiple simultaneous refresh attempts.
+   * With httpOnly cookies, the refresh token is automatically sent by the browser.
+   */
+  private async refreshAccessToken(): Promise<boolean> {
+    // If a refresh is already in progress, wait for it
+    if (this.refreshPromise) {
+      const result = await this.refreshPromise;
+      return result !== null;
     }
+
+    this.refreshPromise = this.performTokenRefresh();
+    const result = await this.refreshPromise;
+    this.refreshPromise = null;
+
+    return result !== null;
+  }
+
+  private async performTokenRefresh(): Promise<string | null> {
+    for (let attempt = 1; attempt <= TOKEN_REFRESH.MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include cookies in the request
+          }
+        );
+
+        if (response.ok) {
+          // With httpOnly cookies, tokens are automatically set by the backend
+          // We just need to return success indicator
+          return 'success';
+        } else if (response.status === 401) {
+          // Refresh token is invalid, don't retry
+          this.clearUserData();
+          return null;
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch {
+        if (attempt < TOKEN_REFRESH.MAX_RETRIES) {
+          const delay = Math.min(
+            TOKEN_REFRESH.INITIAL_DELAY_MS *
+              Math.pow(TOKEN_REFRESH.BACKOFF_MULTIPLIER, attempt - 1),
+            TOKEN_REFRESH.MAX_DELAY_MS
+          );
+
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    // All retries failed
+    this.clearUserData();
+    return null;
   }
 
   private async request<T>(
@@ -122,38 +149,34 @@ class ApiService {
     isRetry = false
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options?.headers,
     };
 
-    // Add authorization header if we have an access token
-    if (this.accessToken) {
-      headers['Authorization'] = `Bearer ${this.accessToken}`;
-    }
-
     try {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include', // Include cookies in all requests
       });
 
       // If unauthorized and we haven't retried yet, try to refresh token
-      if (response.status === 401 && !isRetry && this.refreshToken) {
-        const newToken = await this.refreshAccessToken();
-        if (newToken) {
-          // Retry the request with new token
+      if (response.status === 401 && !isRetry) {
+        const refreshSuccess = await this.refreshAccessToken();
+        if (refreshSuccess) {
+          // Retry the request with new token (now in cookies)
           return this.request(endpoint, options, true);
         }
       }
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
-        
+
         try {
           const errorData = await response.json();
-          
+
           // Handle different error response formats
           if (errorData.detail) {
             errorMessage = errorData.detail;
@@ -163,7 +186,10 @@ class ApiService {
             errorMessage = errorData.error;
           } else if (typeof errorData === 'string') {
             errorMessage = errorData;
-          } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+          } else if (
+            errorData.non_field_errors &&
+            Array.isArray(errorData.non_field_errors)
+          ) {
             errorMessage = errorData.non_field_errors.join(', ');
           } else {
             // Handle field-specific errors
@@ -175,12 +201,12 @@ class ApiService {
                 fieldErrors.push(errorData[field]);
               }
             });
-            
+
             if (fieldErrors.length > 0) {
               errorMessage = fieldErrors.join(', ');
             }
           }
-          
+
           // Map common status codes to user-friendly messages if no specific message found
           if (errorMessage.includes(`HTTP error! status: ${response.status}`)) {
             switch (response.status) {
@@ -191,22 +217,25 @@ class ApiService {
                 errorMessage = 'Invalid username or password.';
                 break;
               case 403:
-                errorMessage = 'Access denied. You do not have permission to perform this action.';
+                errorMessage =
+                  'Access denied. You do not have permission to perform this action.';
                 break;
               case 404:
                 errorMessage = 'The requested resource was not found.';
                 break;
               case 429:
-                errorMessage = 'Too many requests. Please wait before trying again.';
+                errorMessage =
+                  'Too many requests. Please wait before trying again.';
                 break;
               case 500:
                 errorMessage = 'Server error. Please try again later.';
                 break;
               default:
-                errorMessage = 'An unexpected error occurred. Please try again.';
+                errorMessage =
+                  'An unexpected error occurred. Please try again.';
             }
           }
-        } catch (parseError) {
+        } catch {
           // If we can't parse the response, use status-based messages
           switch (response.status) {
             case 400:
@@ -216,13 +245,15 @@ class ApiService {
               errorMessage = 'Invalid username or password.';
               break;
             case 403:
-              errorMessage = 'Access denied. You do not have permission to perform this action.';
+              errorMessage =
+                'Access denied. You do not have permission to perform this action.';
               break;
             case 404:
               errorMessage = 'The requested resource was not found.';
               break;
             case 429:
-              errorMessage = 'Too many requests. Please wait before trying again.';
+              errorMessage =
+                'Too many requests. Please wait before trying again.';
               break;
             case 500:
               errorMessage = 'Server error. Please try again later.';
@@ -231,7 +262,7 @@ class ApiService {
               errorMessage = 'An unexpected error occurred. Please try again.';
           }
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -244,10 +275,11 @@ class ApiService {
 
   /**
    * Checks if the user is currently authenticated
-   * @returns {boolean} True if user has a valid access token
+   * With httpOnly cookies, we check if user data exists in localStorage
+   * @returns {boolean} True if user data exists (indicating they're logged in)
    */
   isAuthenticated(): boolean {
-    return !!this.accessToken;
+    return !!this.getCurrentUser();
   }
 
   /**
@@ -264,7 +296,7 @@ class ApiService {
    * @returns {Promise<HealthResponse>} Promise resolving to health status
    */
   async getHealth(): Promise<HealthResponse> {
-    return this.request<HealthResponse>('/health/');
+    return this.request<HealthResponse>(API_ENDPOINTS.HEALTH);
   }
 
   /**
@@ -272,7 +304,7 @@ class ApiService {
    * @returns {Promise<ApiInfoResponse>} Promise resolving to API information
    */
   async getApiInfo(): Promise<ApiInfoResponse> {
-    return this.request<ApiInfoResponse>('/info/');
+    return this.request<ApiInfoResponse>(API_ENDPOINTS.INFO);
   }
 
   /**
@@ -281,15 +313,17 @@ class ApiService {
    * @returns {Promise<AuthResponse>} Promise resolving to authentication response with tokens
    */
   async signUp(data: SignUpRequest): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/auth/signup/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    
-    // Save tokens and user data
-    this.saveTokens(response.access_token, response.refresh_token);
+    const response = await this.request<AuthResponse>(
+      API_ENDPOINTS.AUTH.SIGNUP,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Save user data to localStorage (tokens are handled via httpOnly cookies)
     localStorage.setItem('user', JSON.stringify(response.user));
-    
+
     return response;
   }
 
@@ -299,15 +333,17 @@ class ApiService {
    * @returns {Promise<AuthResponse>} Promise resolving to authentication response with tokens
    */
   async signIn(data: SignInRequest): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/auth/signin/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    
-    // Save tokens and user data
-    this.saveTokens(response.access_token, response.refresh_token);
+    const response = await this.request<AuthResponse>(
+      API_ENDPOINTS.AUTH.SIGNIN,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Save user data to localStorage (tokens are handled via httpOnly cookies)
     localStorage.setItem('user', JSON.stringify(response.user));
-    
+
     return response;
   }
 
@@ -316,18 +352,16 @@ class ApiService {
    * @returns {Promise<void>} Promise that resolves when logout is complete
    */
   async logout(): Promise<void> {
-    if (this.refreshToken) {
-      try {
-        await this.request('/auth/logout/', {
-          method: 'POST',
-          body: JSON.stringify({ refresh_token: this.refreshToken }),
-        });
-      } catch (error) {
-        console.error('Logout request failed:', error);
-      }
+    try {
+      // Call logout endpoint - it will clear httpOnly cookies on the backend
+      await this.request(API_ENDPOINTS.AUTH.LOGOUT, {
+        method: 'POST',
+      });
+    } catch {
+      // Silent failure for logout - still clear user data locally
     }
-    
-    this.clearTokens();
+
+    this.clearUserData();
   }
 
   /**
@@ -335,7 +369,7 @@ class ApiService {
    * @returns {Promise<User>} Promise resolving to user profile data
    */
   async getUserProfile(): Promise<User> {
-    return this.request<User>('/auth/profile/');
+    return this.request<User>(API_ENDPOINTS.USER.PROFILE);
   }
 
   /**
@@ -344,14 +378,14 @@ class ApiService {
    * @returns {Promise<User>} Promise resolving to updated user profile data
    */
   async updateUserProfile(data: Partial<User>): Promise<User> {
-    const response = await this.request<User>('/auth/profile/', {
+    const response = await this.request<User>(API_ENDPOINTS.USER.PROFILE, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    
+
     // Update stored user data
     localStorage.setItem('user', JSON.stringify(response));
-    
+
     return response;
   }
 
@@ -360,11 +394,16 @@ class ApiService {
    * @param {PasswordChangeRequest} data Password change data including current and new passwords
    * @returns {Promise<PasswordChangeResponse>} Promise resolving to password change confirmation
    */
-  async changePassword(data: PasswordChangeRequest): Promise<PasswordChangeResponse> {
-    return this.request<PasswordChangeResponse>('/auth/change-password/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  async changePassword(
+    data: PasswordChangeRequest
+  ): Promise<PasswordChangeResponse> {
+    return this.request<PasswordChangeResponse>(
+      API_ENDPOINTS.USER.CHANGE_PASSWORD,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
   }
 }
 

@@ -27,7 +27,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         if not create:
             return
 
-        password = extracted if extracted else "testpass123"
+        password = extracted if extracted else "TestPass123!"
         self.set_password(password)
         self.save()
 

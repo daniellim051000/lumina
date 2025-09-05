@@ -30,10 +30,11 @@ class TestUserRegistrationSerializer:
     @pytest.mark.django_db
     def test_password_mismatch(self, user_data):
         """Test validation error when passwords don't match."""
-        user_data["password_confirm"] = "differentpass"
+        user_data["password_confirm"] = "DifferentPass123!"
         serializer = UserRegistrationSerializer(data=user_data)
         assert not serializer.is_valid()
-        assert "Passwords don't match" in str(serializer.errors)
+        assert "password_confirm" in serializer.errors
+        assert "Passwords don't match" in str(serializer.errors["password_confirm"])
 
     @pytest.mark.django_db
     def test_missing_required_fields(self):
@@ -69,6 +70,57 @@ class TestUserRegistrationSerializer:
         user = serializer.save()
         # Verify password works (if it was set twice, it would fail)
         assert user.check_password(user_data["password"])
+
+    @pytest.mark.django_db
+    def test_password_complexity_missing_uppercase(self, user_data):
+        """Test validation error for password without uppercase letter."""
+        weak_password = "password123!"
+        user_data["password"] = weak_password
+        user_data["password_confirm"] = weak_password
+        serializer = UserRegistrationSerializer(data=user_data)
+        assert not serializer.is_valid()
+        assert "uppercase letter" in str(serializer.errors)
+
+    @pytest.mark.django_db
+    def test_password_complexity_missing_lowercase(self, user_data):
+        """Test validation error for password without lowercase letter."""
+        weak_password = "PASSWORD123!"
+        user_data["password"] = weak_password
+        user_data["password_confirm"] = weak_password
+        serializer = UserRegistrationSerializer(data=user_data)
+        assert not serializer.is_valid()
+        assert "lowercase letter" in str(serializer.errors)
+
+    @pytest.mark.django_db
+    def test_password_complexity_missing_number(self, user_data):
+        """Test validation error for password without number."""
+        weak_password = "UncommonPasswordWithoutNumber!"
+        user_data["password"] = weak_password
+        user_data["password_confirm"] = weak_password
+        serializer = UserRegistrationSerializer(data=user_data)
+        assert not serializer.is_valid()
+        assert "number" in str(serializer.errors)
+
+    @pytest.mark.django_db
+    def test_password_complexity_missing_special_char(self, user_data):
+        """Test validation error for password without special character."""
+        weak_password = "UncommonPassword123WithoutSpecialChar"
+        user_data["password"] = weak_password
+        user_data["password_confirm"] = weak_password
+        serializer = UserRegistrationSerializer(data=user_data)
+        assert not serializer.is_valid()
+        assert "special character" in str(serializer.errors)
+
+    @pytest.mark.django_db
+    def test_password_complexity_valid_strong_password(self, user_data):
+        """Test that a strong password passes all validation."""
+        strong_password = "StrongPassword123!"
+        user_data["password"] = strong_password
+        user_data["password_confirm"] = strong_password
+        serializer = UserRegistrationSerializer(data=user_data)
+        assert serializer.is_valid()
+        user = serializer.save()
+        assert user.check_password(strong_password)
 
 
 @pytest.mark.unit
@@ -200,12 +252,49 @@ class TestPasswordChangeSerializer:
         """Test validation error when new passwords don't match."""
         request = request_factory.post("/")
         request.user = user
-        password_change_data["new_password_confirm"] = "differentpass"
+        password_change_data["new_password_confirm"] = "DifferentPass123!"
         serializer = PasswordChangeSerializer(
             data=password_change_data, context={"request": request}
         )
         assert not serializer.is_valid()
-        assert "New passwords don't match" in str(serializer.errors)
+        assert "new_password_confirm" in serializer.errors
+        assert "New passwords don't match" in str(
+            serializer.errors["new_password_confirm"]
+        )
+
+    @pytest.mark.django_db
+    def test_new_password_complexity_validation(self, user, request_factory):
+        """Test new password complexity validation in password change."""
+        request = request_factory.post("/")
+        request.user = user
+
+        # Test with weak password
+        weak_data = {
+            "current_password": "TestPass123!",
+            "new_password": "weak",
+            "new_password_confirm": "weak",
+        }
+        serializer = PasswordChangeSerializer(
+            data=weak_data, context={"request": request}
+        )
+        assert not serializer.is_valid()
+        assert "new_password" in serializer.errors
+
+    @pytest.mark.django_db
+    def test_new_password_strength_requirements(self, user, request_factory):
+        """Test all password strength requirements for new password."""
+        request = request_factory.post("/")
+        request.user = user
+
+        # Test missing uppercase
+        data = {
+            "current_password": "TestPass123!",
+            "new_password": "password123!",
+            "new_password_confirm": "password123!",
+        }
+        serializer = PasswordChangeSerializer(data=data, context={"request": request})
+        assert not serializer.is_valid()
+        assert "uppercase letter" in str(serializer.errors)
 
     @pytest.mark.django_db
     def test_short_new_password(self, user, password_change_data, request_factory):

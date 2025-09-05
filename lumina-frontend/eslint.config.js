@@ -30,6 +30,10 @@ module.exports = [
         MouseEvent: 'readonly',
         Element: 'readonly',
         KeyboardEvent: 'readonly',
+        HTMLInputElement: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        HeadersInit: 'readonly',
       },
       parserOptions: {
         ecmaFeatures: {

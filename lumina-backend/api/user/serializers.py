@@ -1,7 +1,11 @@
 """User authentication and profile serializers."""
 
+import re
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -23,9 +27,48 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
         )
 
+    def validate_password(self, value):
+        """Validate password complexity and strength."""
+        # Use Django's built-in password validators
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+
+        # Additional custom complexity requirements
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                "Password must be at least 8 characters long."
+            )
+
+        if not re.search(r"[A-Z]", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one uppercase letter."
+            )
+
+        if not re.search(r"[a-z]", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one lowercase letter."
+            )
+
+        if not re.search(r"\d", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one number."
+            )
+
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", value):
+            raise serializers.ValidationError(
+                'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).'
+            )
+
+        return value
+
     def validate(self, attrs):
+        """Validate password confirmation and user data."""
         if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError("Passwords don't match")
+            raise serializers.ValidationError(
+                {"password_confirm": ["Passwords don't match."]}
+            )
         return attrs
 
     def create(self, validated_data):
@@ -38,8 +81,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     """Serializer for user login."""
 
-    username = serializers.CharField(error_messages={"required": "Username is required"})
-    password = serializers.CharField(write_only=True, error_messages={"required": "Password is required"})
+    username = serializers.CharField(
+        error_messages={"required": "Username is required"}
+    )
+    password = serializers.CharField(
+        write_only=True, error_messages={"required": "Password is required"}
+    )
 
     def validate(self, attrs):
         username = attrs.get("username")
@@ -86,9 +133,43 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError("Current password is incorrect")
         return value
 
+    def validate_new_password(self, value):
+        """Validate new password complexity and strength."""
+        # Use Django's built-in password validators
+        try:
+            validate_password(value, user=self.context["request"].user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+
+        # Additional custom complexity requirements
+        if not re.search(r"[A-Z]", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one uppercase letter."
+            )
+
+        if not re.search(r"[a-z]", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one lowercase letter."
+            )
+
+        if not re.search(r"\d", value):
+            raise serializers.ValidationError(
+                "Password must contain at least one number."
+            )
+
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", value):
+            raise serializers.ValidationError(
+                'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).'
+            )
+
+        return value
+
     def validate(self, attrs):
+        """Validate password confirmation."""
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError("New passwords don't match")
+            raise serializers.ValidationError(
+                {"new_password_confirm": ["New passwords don't match."]}
+            )
         return attrs
 
     def save(self):
