@@ -130,35 +130,40 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } catch (err) {
       console.error('Error loading active session:', err);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Start local timer countdown
-  const startLocalTimer = useCallback((initialSeconds: number) => {
-    if (timerIntervalRef.current) {
-      window.clearInterval(timerIntervalRef.current);
-    }
-
-    startTimeRef.current = Date.now();
-    pausedTimeRef.current = 0;
-
-    timerIntervalRef.current = window.setInterval(() => {
-      const now = Date.now();
-      const elapsed = Math.floor(
-        (now - (startTimeRef.current || 0) - pausedTimeRef.current) / 1000
-      );
-      const remaining = Math.max(0, initialSeconds - elapsed);
-
-      setTimerState(prev => ({
-        ...prev,
-        timeRemaining: remaining,
-      }));
-
-      // Auto-complete when timer reaches 0
-      if (remaining === 0) {
-        completeTimer();
+  const startLocalTimer = useCallback(
+    (initialSeconds: number) => {
+      if (timerIntervalRef.current) {
+        window.clearInterval(timerIntervalRef.current);
       }
-    }, 1000);
-  }, []);
+
+      startTimeRef.current = Date.now();
+      pausedTimeRef.current = 0;
+
+      timerIntervalRef.current = window.setInterval(() => {
+        const now = Date.now();
+        const elapsed = Math.floor(
+          (now - (startTimeRef.current || 0) - pausedTimeRef.current) / 1000
+        );
+        const remaining = Math.max(0, initialSeconds - elapsed);
+
+        setTimerState(prev => ({
+          ...prev,
+          timeRemaining: remaining,
+        }));
+
+        // Auto-complete when timer reaches 0
+        if (remaining === 0) {
+          completeTimer();
+        }
+      }, 1000);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   // Stop local timer
   const stopLocalTimer = useCallback(() => {
@@ -202,6 +207,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         }
       }, 1000);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerState.timeRemaining]);
 
   // Get session duration based on type
@@ -296,7 +302,12 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Pause the current timer
   const pauseTimer = useCallback(async () => {
-    if (!timerState.currentSession || !timerState.isRunning) return;
+    if (
+      !timerState.currentSession ||
+      !timerState.currentSession.id ||
+      !timerState.isRunning
+    )
+      return;
 
     try {
       setIsLoading(true);
@@ -319,7 +330,12 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Resume the current timer
   const resumeTimer = useCallback(async () => {
-    if (!timerState.currentSession || timerState.isRunning) return;
+    if (
+      !timerState.currentSession ||
+      !timerState.currentSession.id ||
+      timerState.isRunning
+    )
+      return;
 
     try {
       setIsLoading(true);
@@ -342,7 +358,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Skip the current timer
   const skipTimer = useCallback(async () => {
-    if (!timerState.currentSession) return;
+    if (!timerState.currentSession || !timerState.currentSession.id) return;
 
     try {
       setIsLoading(true);
@@ -367,7 +383,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Stop the current timer (cancel)
   const stopTimer = useCallback(async () => {
-    if (!timerState.currentSession) return;
+    if (!timerState.currentSession || !timerState.currentSession.id) return;
 
     try {
       setIsLoading(true);
@@ -393,7 +409,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Complete the current timer
   const completeTimer = useCallback(async () => {
-    if (!timerState.currentSession) return;
+    if (!timerState.currentSession || !timerState.currentSession.id) return;
 
     try {
       setIsLoading(true);

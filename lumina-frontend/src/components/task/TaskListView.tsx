@@ -30,7 +30,6 @@ import {
 } from '../../hooks/useKeyboardShortcuts';
 import { TaskSkeleton } from '../ui/TaskSkeleton';
 import { ErrorDisplay } from '../ui/ErrorDisplay';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { useToast } from '../../contexts/ToastContext';
 
 interface TaskListViewProps {
@@ -83,7 +82,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   onTaskCreate,
   onTaskUpdate,
 }) => {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);

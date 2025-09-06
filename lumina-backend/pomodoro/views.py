@@ -166,9 +166,28 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
-        if self.action == "create":
-            return PomodoroSessionCreateSerializer
+        # Always return the regular serializer since create() handles its own serialization
         return PomodoroSessionSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Create a new session and return full session data."""
+        # Use the create serializer for validation
+        create_serializer = PomodoroSessionCreateSerializer(
+            data=request.data, context={"request": request}
+        )
+        create_serializer.is_valid(raise_exception=True)
+        
+        # Create the session
+        session = create_serializer.save(user=request.user)
+        
+        # Return full session data using the regular serializer
+        response_serializer = self.get_serializer(session)
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(
+            response_serializer.data, 
+            status=status.HTTP_201_CREATED, 
+            headers=headers
+        )
 
     def perform_create(self, serializer):
         """Create session for the current user."""
@@ -269,9 +288,7 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
         )
 
         if not active_session:
-            return Response(
-                {"message": "No active session"}, status=status.HTTP_204_NO_CONTENT
-            )
+            return Response(None, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(active_session)
         return Response(serializer.data)

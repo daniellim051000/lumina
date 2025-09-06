@@ -288,7 +288,26 @@ class ApiService {
         throw new Error(errorMessage);
       }
 
-      return await response.json();
+      // Check if response has content before parsing JSON
+      const contentLength = response.headers.get('content-length');
+      if (contentLength === '0' || !contentLength) {
+        return null;
+      }
+
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        return null;
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (jsonError) {
+        // If text is 'null', return null
+        if (text.trim() === 'null') {
+          return null;
+        }
+        throw jsonError;
+      }
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
       throw error;

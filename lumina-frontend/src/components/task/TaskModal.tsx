@@ -129,7 +129,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     setIsSubmitting(true);
     try {
       await onSave(taskData);
-    } catch (error) {
+    } catch {
       // Error handling is done at parent level
     } finally {
       setIsSubmitting(false);
@@ -420,7 +420,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       setIsSubmitting(true);
                       try {
                         await onDelete(task.id);
-                      } catch (error) {
+                      } catch {
                         // Error handling is done at parent level
                       } finally {
                         setIsSubmitting(false);
