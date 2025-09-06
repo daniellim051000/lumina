@@ -198,7 +198,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               />
             </div>
           )}
-          
+
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Task Title */}
             <div>
@@ -460,7 +460,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 {(loading || isSubmitting) && (
                   <LoadingSpinner size="sm" className="mr-2" />
                 )}
-                {loading || isSubmitting ? 'Saving...' : task ? 'Update Task' : 'Create Task'}
+                {loading || isSubmitting
+                  ? 'Saving...'
+                  : task
+                    ? 'Update Task'
+                    : 'Create Task'}
               </button>
             </div>
           </div>

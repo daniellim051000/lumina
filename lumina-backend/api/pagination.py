@@ -34,122 +34,134 @@ from rest_framework.response import Response
 
 class StandardResultsSetPagination(PageNumberPagination):
     """Standard pagination class for most list views.
-    
+
     Used for projects, labels, and other medium-sized datasets.
     Provides 20 items per page by default with user-configurable page size.
-    
+
     Attributes:
         page_size (int): Default number of items per page (20)
         page_size_query_param (str): Query parameter name for custom page size
         max_page_size (int): Maximum allowed page size (100)
+
     """
-    
+
     page_size = 20
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 100
-    
+
     def get_paginated_response(self, data):
         """Return paginated response with additional metadata.
-        
+
         Enhances the standard pagination response with extra metadata
         for better frontend pagination handling.
-        
+
         Args:
             data (list): The serialized data for the current page
-            
+
         Returns:
             Response: DRF Response object with pagination metadata and results
+
         """
-        return Response({
-            'pagination': {
-                'count': self.page.paginator.count,
-                'next': self.get_next_link(),
-                'previous': self.get_previous_link(),
-                'current_page': self.page.number,
-                'total_pages': self.page.paginator.num_pages,
-                'page_size': self.page_size,
-            },
-            'results': data
-        })
+        return Response(
+            {
+                "pagination": {
+                    "count": self.page.paginator.count,
+                    "next": self.get_next_link(),
+                    "previous": self.get_previous_link(),
+                    "current_page": self.page.number,
+                    "total_pages": self.page.paginator.num_pages,
+                    "page_size": self.page_size,
+                },
+                "results": data,
+            }
+        )
 
 
 class LargeResultsSetPagination(PageNumberPagination):
     """Pagination for views that might return many items.
-    
+
     Used for task lists and other potentially large datasets that benefit
     from larger page sizes to reduce API calls while maintaining performance.
-    
+
     Attributes:
         page_size (int): Default number of items per page (50)
         page_size_query_param (str): Query parameter name for custom page size
         max_page_size (int): Maximum allowed page size (200)
+
     """
-    
+
     page_size = 50
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 200
-    
+
     def get_paginated_response(self, data):
         """Return paginated response with additional metadata.
-        
+
         Enhances the standard pagination response with extra metadata
         for better frontend pagination handling.
-        
+
         Args:
             data (list): The serialized data for the current page
-            
+
         Returns:
             Response: DRF Response object with pagination metadata and results
+
         """
-        return Response({
-            'pagination': {
-                'count': self.page.paginator.count,
-                'next': self.get_next_link(),
-                'previous': self.get_previous_link(),
-                'current_page': self.page.number,
-                'total_pages': self.page.paginator.num_pages,
-                'page_size': self.page_size,
-            },
-            'results': data
-        })
+        return Response(
+            {
+                "pagination": {
+                    "count": self.page.paginator.count,
+                    "next": self.get_next_link(),
+                    "previous": self.get_previous_link(),
+                    "current_page": self.page.number,
+                    "total_pages": self.page.paginator.num_pages,
+                    "page_size": self.page_size,
+                },
+                "results": data,
+            }
+        )
 
 
 class SmallResultsSetPagination(PageNumberPagination):
     """Pagination for views with fewer items like comments.
-    
+
     Used for comments and other small datasets where users typically
     want to see fewer items per page for better readability.
-    
+
     Attributes:
         page_size (int): Default number of items per page (10)
         page_size_query_param (str): Query parameter name for custom page size
         max_page_size (int): Maximum allowed page size (50)
+
     """
-    
+
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 50
-    
+
     def get_paginated_response(self, data):
         """Return paginated response with additional metadata.
-        
+
         Enhances the standard pagination response with extra metadata
         for better frontend pagination handling.
-        
+
         Args:
             data (list): The serialized data for the current page
-            
+
         Returns:
             Response: DRF Response object with pagination metadata and results
+
         """
-        return Response({
-            'pagination': {
-                'count': self.page.paginator.count,
-                'next': self.get_next_link(),
-                'previous': self.get_previous_link(),
-                'current_page': self.page.number,
-                'total_pages': self.page.paginator.num_pages,
-                'page_size': self.page_size,
-            },
-            'results': data
-        })
+        return Response(
+            {
+                "pagination": {
+                    "count": self.page.paginator.count,
+                    "next": self.get_next_link(),
+                    "previous": self.get_previous_link(),
+                    "current_page": self.page.number,
+                    "total_pages": self.page.paginator.num_pages,
+                    "page_size": self.page_size,
+                },
+                "results": data,
+            }
+        )

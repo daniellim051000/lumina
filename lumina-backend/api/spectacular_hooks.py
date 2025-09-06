@@ -28,7 +28,7 @@ def postprocessing_hook(result, generator, request, public):
             for method, operation in methods.items():
                 # Clear existing auto-generated tags to avoid duplicates
                 operation["tags"] = []
-                
+
                 # Add clean tags based on path patterns
                 if "/tasks/" in path:
                     operation["tags"].append("Tasks")

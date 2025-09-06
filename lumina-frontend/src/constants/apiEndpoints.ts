@@ -59,6 +59,38 @@ export const API_ENDPOINTS = {
     UPDATE: (id: number) => `/labels/${id}/`,
     DELETE: (id: number) => `/labels/${id}/`,
   },
+
+  // Pomodoro timer endpoints
+  POMODORO: {
+    SETTINGS: {
+      LIST: '/pomodoro/settings/',
+      UPDATE: '/pomodoro/settings/',
+      RESET: '/pomodoro/settings/',
+    },
+    PRESETS: {
+      LIST: '/pomodoro/presets/',
+      CREATE: '/pomodoro/presets/',
+      DETAIL: (id: number) => `/pomodoro/presets/${id}/`,
+      UPDATE: (id: number) => `/pomodoro/presets/${id}/`,
+      DELETE: (id: number) => `/pomodoro/presets/${id}/`,
+      SET_DEFAULT: (id: number) => `/pomodoro/presets/${id}/set_default/`,
+      APPLY_TO_SETTINGS: (id: number) =>
+        `/pomodoro/presets/${id}/apply_to_settings/`,
+    },
+    SESSIONS: {
+      LIST: '/pomodoro/sessions/',
+      CREATE: '/pomodoro/sessions/',
+      DETAIL: (id: number) => `/pomodoro/sessions/${id}/`,
+      UPDATE: (id: number) => `/pomodoro/sessions/${id}/`,
+      DELETE: (id: number) => `/pomodoro/sessions/${id}/`,
+      PAUSE: (id: number) => `/pomodoro/sessions/${id}/pause/`,
+      RESUME: (id: number) => `/pomodoro/sessions/${id}/resume/`,
+      COMPLETE: (id: number) => `/pomodoro/sessions/${id}/complete/`,
+      SKIP: (id: number) => `/pomodoro/sessions/${id}/skip/`,
+      ACTIVE: '/pomodoro/sessions/active/',
+      STATS: '/pomodoro/sessions/stats/',
+    },
+  },
 } as const;
 
 /**
