@@ -63,7 +63,13 @@ class TaskCommentAdmin(admin.ModelAdmin):
     search_fields = ["content", "task__title"]
     ordering = ["-created_at"]
 
+    CONTENT_PREVIEW_LENGTH = 50
+
     def content_preview(self, obj):
-        return obj.content[:50] + "..." if len(obj.content) > 50 else obj.content
+        return (
+            obj.content[: self.CONTENT_PREVIEW_LENGTH] + "..."
+            if len(obj.content) > self.CONTENT_PREVIEW_LENGTH
+            else obj.content
+        )
 
     content_preview.short_description = "Content Preview"

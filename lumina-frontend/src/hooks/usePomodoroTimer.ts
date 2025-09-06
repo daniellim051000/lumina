@@ -137,8 +137,16 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } catch (err) {
       console.error('Error loading active session:', err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [startLocalTimer]);
+
+  // Use refs to access latest values without causing dependency cycles
+  const timerStateRef = useRef(timerState);
+  const completeTimerRef = useRef<() => Promise<void>>();
+
+  // Update refs when values change
+  useEffect(() => {
+    timerStateRef.current = timerState;
+  }, [timerState]);
 
   // Start local timer countdown
   const startLocalTimer = useCallback(
@@ -163,18 +171,20 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         }));
 
         // Show break reminder during work sessions when 5 minutes left
-        if (remaining === 5 * 60 && timerState.sessionType === 'work') {
+        if (
+          remaining === 5 * 60 &&
+          timerStateRef.current.sessionType === 'work'
+        ) {
           showBreakReminder(remaining);
         }
 
         // Auto-complete when timer reaches 0
-        if (remaining === 0) {
-          completeTimer();
+        if (remaining === 0 && completeTimerRef.current) {
+          completeTimerRef.current();
         }
       }, 1000);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [showBreakReminder]
   );
 
   // Stop local timer
@@ -200,6 +210,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
   // Resume local timer
   const resumeLocalTimer = useCallback(() => {
     if (!timerIntervalRef.current && startTimeRef.current) {
+      const currentTimeRemaining = timerStateRef.current.timeRemaining;
       startTimeRef.current = Date.now();
 
       timerIntervalRef.current = window.setInterval(() => {
@@ -207,7 +218,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         const elapsed = Math.floor(
           (now - (startTimeRef.current || 0) - pausedTimeRef.current) / 1000
         );
-        const remaining = Math.max(0, timerState.timeRemaining - elapsed);
+        const remaining = Math.max(0, currentTimeRemaining - elapsed);
 
         setTimerState(prev => ({
           ...prev,
@@ -215,17 +226,19 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         }));
 
         // Show break reminder during work sessions when 5 minutes left
-        if (remaining === 5 * 60 && timerState.sessionType === 'work') {
+        if (
+          remaining === 5 * 60 &&
+          timerStateRef.current.sessionType === 'work'
+        ) {
           showBreakReminder(remaining);
         }
 
-        if (remaining === 0) {
-          completeTimer();
+        if (remaining === 0 && completeTimerRef.current) {
+          completeTimerRef.current();
         }
       }, 1000);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timerState.timeRemaining]);
+  }, [showBreakReminder]);
 
   // Get session duration based on type
   const getSessionDuration = useCallback(
@@ -318,7 +331,14 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         setIsLoading(false);
       }
     },
-    [getNextSessionType, getSessionDuration, timerState, startLocalTimer]
+    [
+      getNextSessionType,
+      getSessionDuration,
+      timerState,
+      startLocalTimer,
+      playSound,
+      showTimerNotification,
+    ]
   );
 
   // Pause the current timer
@@ -430,11 +450,17 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
   // Complete the current timer
   const completeTimer = useCallback(async () => {
-    if (!timerState.currentSession || !timerState.currentSession.id) return;
+    if (
+      !timerStateRef.current.currentSession ||
+      !timerStateRef.current.currentSession.id
+    )
+      return;
 
     try {
       setIsLoading(true);
-      await apiService.completePomodoroSession(timerState.currentSession.id);
+      await apiService.completePomodoroSession(
+        timerStateRef.current.currentSession.id
+      );
 
       stopLocalTimer();
 
@@ -447,7 +473,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
       }));
 
       // Play completion sound and show notification
-      const completedSessionType = timerState.sessionType;
+      const completedSessionType = timerStateRef.current.sessionType;
       const soundId =
         completedSessionType === 'work' ? 'work-complete' : 'break-complete';
 
@@ -460,8 +486,8 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         nextSessionType === 'work'
           ? completedSessionType === 'long_break'
             ? 1
-            : timerState.sessionNumber + 1
-          : timerState.sessionNumber;
+            : timerStateRef.current.sessionNumber + 1
+          : timerStateRef.current.sessionNumber;
 
       if (nextSessionType === 'work') {
         setTimeout(() => {
@@ -478,7 +504,20 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [timerState, stopLocalTimer]);
+  }, [
+    stopLocalTimer,
+    playSound,
+    showTimerNotification,
+    getNextSessionType,
+    showWorkReminder,
+    showBreakReminder,
+    getSessionDuration,
+  ]);
+
+  // Update completeTimer ref when function changes
+  useEffect(() => {
+    completeTimerRef.current = completeTimer;
+  }, [completeTimer]);
 
   // Format time in MM:SS format
   const formatTime = useCallback((seconds: number): string => {

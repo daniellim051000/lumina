@@ -197,6 +197,9 @@ class PomodoroSession(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     paused_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    total_paused_seconds = models.PositiveIntegerField(
+        default=0, help_text="Total time paused during session in seconds"
+    )
 
     # Session sequence tracking
     session_number = models.PositiveIntegerField(
@@ -217,6 +220,21 @@ class PomodoroSession(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
+        indexes = [
+            # Index for finding active sessions (most common query)
+            models.Index(fields=["user", "status"], name="pomodoro_user_status_idx"),
+            # Index for statistics queries by date
+            models.Index(fields=["user", "started_at"], name="pomodoro_user_date_idx"),
+            # Index for filtering by user and session type
+            models.Index(
+                fields=["user", "session_type"], name="pomodoro_user_type_idx"
+            ),
+            # Composite index for active session lookup
+            models.Index(
+                fields=["user", "status", "started_at"],
+                name="pomodoro_active_lookup_idx",
+            ),
+        ]
 
     def clean(self):
         """Validate and sanitize session data."""
@@ -244,12 +262,16 @@ class PomodoroSession(models.Model):
             # Calculate actual duration if not set
             if not self.actual_duration and self.started_at:
                 duration_seconds = (self.completed_at - self.started_at).total_seconds()
-                # Account for paused time if session was paused
-                if self.paused_at:
-                    paused_duration = (
+
+                # Subtract total paused time
+                duration_seconds -= self.total_paused_seconds
+
+                # If currently paused, add time from last pause to completion
+                if self.paused_at and self.status == "completed":
+                    current_pause_duration = (
                         self.completed_at - self.paused_at
                     ).total_seconds()
-                    duration_seconds -= paused_duration
+                    duration_seconds -= current_pause_duration
 
                 self.actual_duration = max(
                     1, int(duration_seconds / 60)
@@ -279,12 +301,15 @@ class PomodoroSession(models.Model):
         end_time = self.completed_at or timezone.now()
         elapsed_seconds = (end_time - self.started_at).total_seconds()
 
-        # Subtract paused time if applicable
-        if self.paused_at and self.status == "paused":
-            paused_seconds = (timezone.now() - self.paused_at).total_seconds()
-            elapsed_seconds -= paused_seconds
+        # Subtract total paused time accumulated so far
+        elapsed_seconds -= self.total_paused_seconds
 
-        return int(elapsed_seconds / 60)
+        # If currently paused, subtract time since pause started
+        if self.paused_at and self.status == "paused":
+            current_pause_seconds = (timezone.now() - self.paused_at).total_seconds()
+            elapsed_seconds -= current_pause_seconds
+
+        return max(0, int(elapsed_seconds / 60))
 
     @property
     def remaining_minutes(self):

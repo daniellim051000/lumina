@@ -80,7 +80,7 @@ class JWTCookieAuthentication(JWTAuthentication):
                 return header_result
             raise InvalidToken(e.args[0]) from e
 
-    def authenticate_header(self, request):
+    def authenticate_header(self, _request):
         """Return the authentication header for challenge responses.
 
         This method is called by DRF when authentication fails to provide

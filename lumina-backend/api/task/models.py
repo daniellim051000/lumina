@@ -61,6 +61,8 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Meta configuration for Project model."""
+
         ordering = ["position", "name"]
         unique_together = ["user", "name"]
 

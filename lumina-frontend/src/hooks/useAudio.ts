@@ -49,8 +49,7 @@ export const NOTIFICATION_SOUNDS: SoundConfig[] = [
 // Fallback to system beep or generated tone if no audio files
 const generateBeepTone = (frequency: number = 800, duration: number = 200) => {
   try {
-    const audioContext = new (window.AudioContext ||
-      window.webkitAudioContext)();
+    const audioContext = new (window.AudioContext || window.AudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 

@@ -1,5 +1,6 @@
 """API views for Pomodoro timer functionality."""
 
+import logging
 from datetime import datetime, timedelta
 
 from django.db.models import Avg, Sum
@@ -18,6 +19,9 @@ from .serializers import (
     PomodoroSettingsSerializer,
 )
 
+# Constants
+TIME_SYNC_THRESHOLD_SECONDS = 30
+
 
 class PomodoroSettingsViewSet(viewsets.ModelViewSet):
     """ViewSet for managing user's Pomodoro settings."""
@@ -31,6 +35,18 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         """Get or create settings for the current user."""
+        # Check if pk is provided and valid
+        pk = self.kwargs.get('pk')
+        if pk:
+            # If pk provided, ensure it belongs to current user
+            try:
+                return PomodoroSettings.objects.get(pk=pk, user=self.request.user)
+            except PomodoroSettings.DoesNotExist:
+                # If settings don't exist or don't belong to user, raise 404
+                from django.http import Http404
+                raise Http404("Settings not found")
+        
+        # If no pk provided, get or create settings for current user
         settings, created = PomodoroSettings.objects.get_or_create(
             user=self.request.user
         )
@@ -169,24 +185,22 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
         # Always return the regular serializer since create() handles its own serialization
         return PomodoroSessionSerializer
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request, *_args, **_kwargs):
         """Create a new session and return full session data."""
         # Use the create serializer for validation
         create_serializer = PomodoroSessionCreateSerializer(
             data=request.data, context={"request": request}
         )
         create_serializer.is_valid(raise_exception=True)
-        
+
         # Create the session
         session = create_serializer.save(user=request.user)
-        
+
         # Return full session data using the regular serializer
         response_serializer = self.get_serializer(session)
         headers = self.get_success_headers(response_serializer.data)
         return Response(
-            response_serializer.data, 
-            status=status.HTTP_201_CREATED, 
-            headers=headers
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
     def perform_create(self, serializer):
@@ -222,6 +236,11 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Calculate and accumulate paused time
+        if session.paused_at:
+            paused_duration = (timezone.now() - session.paused_at).total_seconds()
+            session.total_paused_seconds += int(paused_duration)
+
         session.status = "active"
         session.paused_at = None
         session.save()
@@ -240,6 +259,11 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # If currently paused, add final pause duration to total
+        if session.status == "paused" and session.paused_at:
+            final_pause_duration = (timezone.now() - session.paused_at).total_seconds()
+            session.total_paused_seconds += int(final_pause_duration)
+
         session.status = "completed"
         session.completed_at = timezone.now()
 
@@ -248,12 +272,9 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
             duration_seconds = (
                 session.completed_at - session.started_at
             ).total_seconds()
-            # Account for paused time if session was paused
-            if session.paused_at:
-                paused_duration = (
-                    session.completed_at - session.paused_at
-                ).total_seconds()
-                duration_seconds -= paused_duration
+
+            # Subtract total paused time
+            duration_seconds -= session.total_paused_seconds
 
             session.actual_duration = max(1, int(duration_seconds / 60))
 
@@ -282,7 +303,7 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        """Get the current active session for the user."""
+        """Get the current active session for the user with server-side time validation."""
         active_session = (
             self.get_queryset().filter(status__in=["active", "paused"]).first()
         )
@@ -290,8 +311,70 @@ class PomodoroSessionViewSet(viewsets.ModelViewSet):
         if not active_session:
             return Response(None, status=status.HTTP_200_OK)
 
+        # Server-side validation: auto-complete sessions that have exceeded planned duration
+        if active_session.status == "active" and active_session.remaining_minutes <= 0:
+            # Auto-complete the session
+            active_session.status = "completed"
+            active_session.completed_at = timezone.now()
+
+            # Calculate actual duration
+            if active_session.started_at:
+                duration_seconds = (
+                    active_session.completed_at - active_session.started_at
+                ).total_seconds()
+                duration_seconds -= active_session.total_paused_seconds
+                active_session.actual_duration = max(1, int(duration_seconds / 60))
+
+            active_session.save()
+
+            # Return None since session is now completed
+            return Response(None, status=status.HTTP_200_OK)
+
         serializer = self.get_serializer(active_session)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def sync(self, request):
+        """Sync timer state with server for validation."""
+        client_remaining = request.data.get("remaining_seconds", 0)
+        session_id = request.data.get("session_id")
+
+        if not session_id:
+            return Response(
+                {"error": "session_id is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            session = self.get_queryset().get(
+                id=session_id, status__in=["active", "paused"]
+            )
+        except PomodoroSession.DoesNotExist:
+            return Response(
+                {"error": "Active session not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        server_remaining = session.remaining_minutes * 60
+
+        # Allow small discrepancies (up to 30 seconds)
+        time_diff = abs(server_remaining - client_remaining)
+
+        response_data = {
+            "server_remaining_seconds": server_remaining,
+            "client_remaining_seconds": client_remaining,
+            "time_difference": time_diff,
+            "sync_required": time_diff > TIME_SYNC_THRESHOLD_SECONDS,
+            "session_status": session.status,
+        }
+
+        # If time difference is significant, log it for debugging
+        if time_diff > TIME_SYNC_THRESHOLD_SECONDS:
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Timer sync discrepancy detected: User {session.user.id}, "
+                f"Session {session_id}, Diff: {time_diff}s"
+            )
+
+        return Response(response_data)
 
     @action(detail=False, methods=["get"])
     def stats(self, request):
