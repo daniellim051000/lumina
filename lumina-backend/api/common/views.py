@@ -7,8 +7,8 @@ from rest_framework.response import Response
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def health_check(request):
-    """Simple health check endpoint to test API connectivity."""
+def health_check(_request):
+    """Test API connectivity with simple health check."""
     return Response(
         {
             "status": "healthy",
@@ -20,8 +20,8 @@ def health_check(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def api_info(request):
-    """Provides basic API information for testing Electron-Django communication."""
+def api_info(_request):
+    """Provide basic API information for testing Electron-Django communication."""
     return Response(
         {
             "api_name": "Lumina Backend API",

@@ -32,15 +32,11 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   return (
     <div className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
       <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-      
+
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-medium text-red-800 mb-1">
-          {title}
-        </h3>
-        <p className="text-sm text-red-700 break-words">
-          {errorMessage}
-        </p>
-        
+        <h3 className="text-sm font-medium text-red-800 mb-1">{title}</h3>
+        <p className="text-sm text-red-700 break-words">{errorMessage}</p>
+
         {showRetry && onRetry && (
           <button
             onClick={onRetry}

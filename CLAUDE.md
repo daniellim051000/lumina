@@ -22,6 +22,7 @@ Lumina is a full-stack desktop task management application with a monorepo struc
 - **CORS enabled** for Electron frontend communication
 - **Environment variables** managed via `python-decouple` and `.env` files
 - **RESTful API** with task management endpoints
+- **Test-Driven Development**: All backend development must follow TDD approach - write tests first, then implement functionality
 
 ### Development Workflow
 The application requires **4 concurrent processes** for full development:
@@ -54,9 +55,11 @@ python manage.py migrate
 python manage.py makemigrations
 python manage.py createsuperuser
 
-# Code quality
+# Code quality & Testing
 ruff check . --fix
 ruff format .
+python -m pytest  # Run test suite with pytest
+python -m pytest --cov=api --cov-report=term  # Run with coverage
 pre-commit run --all-files
 ```
 

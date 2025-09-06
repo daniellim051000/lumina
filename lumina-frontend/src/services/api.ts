@@ -14,6 +14,17 @@ import {
   Label,
   TaskComment,
 } from '../types/task';
+import {
+  PomodoroSettings,
+  PomodoroPreset,
+  PomodoroSession,
+  PomodoroSessionCreate,
+  PomodoroSessionUpdate,
+  PomodoroSessionStats,
+  PomodoroSettingsUpdate,
+  PomodoroPresetData,
+  SessionFilters,
+} from '../types/pomodoro';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -277,7 +288,26 @@ class ApiService {
         throw new Error(errorMessage);
       }
 
-      return await response.json();
+      // Check if response has content before parsing JSON
+      const contentLength = response.headers.get('content-length');
+      if (contentLength === '0' || !contentLength) {
+        return null;
+      }
+
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        return null;
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (jsonError) {
+        // If text is 'null', return null
+        if (text.trim() === 'null') {
+          return null;
+        }
+        throw jsonError;
+      }
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
       throw error;
@@ -717,6 +747,324 @@ class ApiService {
     return this.request<void>(API_ENDPOINTS.TASKS.COMMENTS.DELETE(commentId), {
       method: 'DELETE',
     });
+  }
+
+  // ========================
+  // POMODORO TIMER METHODS
+  // ========================
+
+  /**
+   * Retrieves user's Pomodoro settings
+   * @returns {Promise<PomodoroSettings>} Promise resolving to user settings
+   */
+  async getPomodoroSettings(): Promise<PomodoroSettings> {
+    const response = await this.request<PomodoroSettings[]>(
+      API_ENDPOINTS.POMODORO.SETTINGS.LIST
+    );
+    return response[0]; // Settings are returned as single-item array
+  }
+
+  /**
+   * Updates user's Pomodoro settings
+   * @param {PomodoroSettingsUpdate} settingsData Settings data to update
+   * @returns {Promise<PomodoroSettings>} Promise resolving to updated settings
+   */
+  async updatePomodoroSettings(
+    settingsData: PomodoroSettingsUpdate
+  ): Promise<PomodoroSettings> {
+    return this.request<PomodoroSettings>(
+      API_ENDPOINTS.POMODORO.SETTINGS.UPDATE,
+      {
+        method: 'PUT',
+        body: JSON.stringify(settingsData),
+      }
+    );
+  }
+
+  /**
+   * Resets user's Pomodoro settings to defaults
+   * @returns {Promise<PomodoroSettings>} Promise resolving to reset settings
+   */
+  async resetPomodoroSettings(): Promise<PomodoroSettings> {
+    return this.request<PomodoroSettings>(
+      API_ENDPOINTS.POMODORO.SETTINGS.RESET,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  /**
+   * Retrieves all user's Pomodoro presets
+   * @returns {Promise<PomodoroPreset[]>} Promise resolving to list of presets
+   */
+  async getPomodoroPresets(): Promise<PomodoroPreset[]> {
+    const response = await this.request<
+      | {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: PomodoroPreset[];
+        }
+      | PomodoroPreset[]
+    >(API_ENDPOINTS.POMODORO.PRESETS.LIST);
+
+    return Array.isArray(response) ? response : response.results || [];
+  }
+
+  /**
+   * Creates a new Pomodoro preset
+   * @param {PomodoroPresetData} presetData Preset data
+   * @returns {Promise<PomodoroPreset>} Promise resolving to created preset
+   */
+  async createPomodoroPreset(
+    presetData: PomodoroPresetData
+  ): Promise<PomodoroPreset> {
+    return this.request<PomodoroPreset>(API_ENDPOINTS.POMODORO.PRESETS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(presetData),
+    });
+  }
+
+  /**
+   * Updates a Pomodoro preset
+   * @param {number} presetId Preset ID
+   * @param {Partial<PomodoroPresetData>} presetData Preset data to update
+   * @returns {Promise<PomodoroPreset>} Promise resolving to updated preset
+   */
+  async updatePomodoroPreset(
+    presetId: number,
+    presetData: Partial<PomodoroPresetData>
+  ): Promise<PomodoroPreset> {
+    return this.request<PomodoroPreset>(
+      API_ENDPOINTS.POMODORO.PRESETS.UPDATE(presetId),
+      {
+        method: 'PUT',
+        body: JSON.stringify(presetData),
+      }
+    );
+  }
+
+  /**
+   * Deletes a Pomodoro preset
+   * @param {number} presetId Preset ID
+   * @returns {Promise<void>} Promise resolving when preset is deleted
+   */
+  async deletePomodoroPreset(presetId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.POMODORO.PRESETS.DELETE(presetId), {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Sets a preset as the default for the user
+   * @param {number} presetId Preset ID
+   * @returns {Promise<PomodoroPreset>} Promise resolving to updated preset
+   */
+  async setDefaultPomodoroPreset(presetId: number): Promise<PomodoroPreset> {
+    return this.request<PomodoroPreset>(
+      API_ENDPOINTS.POMODORO.PRESETS.SET_DEFAULT(presetId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Applies a preset to the user's current settings
+   * @param {number} presetId Preset ID
+   * @returns {Promise<PomodoroSettings>} Promise resolving to updated settings
+   */
+  async applyPomodoroPreset(presetId: number): Promise<PomodoroSettings> {
+    return this.request<PomodoroSettings>(
+      API_ENDPOINTS.POMODORO.PRESETS.APPLY_TO_SETTINGS(presetId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Retrieves Pomodoro sessions with optional filtering
+   * @param {SessionFilters} filters Optional filters for sessions
+   * @returns {Promise<PomodoroSession[]>} Promise resolving to list of sessions
+   */
+  async getPomodoroSessions(
+    filters?: SessionFilters
+  ): Promise<PomodoroSession[]> {
+    const params = new globalThis.URLSearchParams();
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const endpoint = params.toString()
+      ? `${API_ENDPOINTS.POMODORO.SESSIONS.LIST}?${params.toString()}`
+      : API_ENDPOINTS.POMODORO.SESSIONS.LIST;
+
+    const response = await this.request<
+      | {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: PomodoroSession[];
+        }
+      | PomodoroSession[]
+    >(endpoint);
+
+    return Array.isArray(response) ? response : response.results || [];
+  }
+
+  /**
+   * Retrieves a single Pomodoro session by ID
+   * @param {number} sessionId Session ID
+   * @returns {Promise<PomodoroSession>} Promise resolving to session details
+   */
+  async getPomodoroSession(sessionId: number): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.DETAIL(sessionId)
+    );
+  }
+
+  /**
+   * Creates a new Pomodoro session
+   * @param {PomodoroSessionCreate} sessionData Session data
+   * @returns {Promise<PomodoroSession>} Promise resolving to created session
+   */
+  async createPomodoroSession(
+    sessionData: PomodoroSessionCreate
+  ): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.CREATE,
+      {
+        method: 'POST',
+        body: JSON.stringify(sessionData),
+      }
+    );
+  }
+
+  /**
+   * Updates a Pomodoro session
+   * @param {number} sessionId Session ID
+   * @param {PomodoroSessionUpdate} sessionData Session data to update
+   * @returns {Promise<PomodoroSession>} Promise resolving to updated session
+   */
+  async updatePomodoroSession(
+    sessionId: number,
+    sessionData: PomodoroSessionUpdate
+  ): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.UPDATE(sessionId),
+      {
+        method: 'PUT',
+        body: JSON.stringify(sessionData),
+      }
+    );
+  }
+
+  /**
+   * Deletes a Pomodoro session
+   * @param {number} sessionId Session ID
+   * @returns {Promise<void>} Promise resolving when session is deleted
+   */
+  async deletePomodoroSession(sessionId: number): Promise<void> {
+    return this.request<void>(
+      API_ENDPOINTS.POMODORO.SESSIONS.DELETE(sessionId),
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  /**
+   * Pauses an active Pomodoro session
+   * @param {number} sessionId Session ID
+   * @returns {Promise<PomodoroSession>} Promise resolving to updated session
+   */
+  async pausePomodoroSession(sessionId: number): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.PAUSE(sessionId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Resumes a paused Pomodoro session
+   * @param {number} sessionId Session ID
+   * @returns {Promise<PomodoroSession>} Promise resolving to updated session
+   */
+  async resumePomodoroSession(sessionId: number): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.RESUME(sessionId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Completes a Pomodoro session
+   * @param {number} sessionId Session ID
+   * @returns {Promise<PomodoroSession>} Promise resolving to updated session
+   */
+  async completePomodoroSession(sessionId: number): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.COMPLETE(sessionId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Skips a Pomodoro session
+   * @param {number} sessionId Session ID
+   * @returns {Promise<PomodoroSession>} Promise resolving to updated session
+   */
+  async skipPomodoroSession(sessionId: number): Promise<PomodoroSession> {
+    return this.request<PomodoroSession>(
+      API_ENDPOINTS.POMODORO.SESSIONS.SKIP(sessionId),
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  /**
+   * Gets the current active Pomodoro session
+   * @returns {Promise<PomodoroSession | null>} Promise resolving to active session or null
+   */
+  async getActivePomodoroSession(): Promise<PomodoroSession | null> {
+    try {
+      return await this.request<PomodoroSession>(
+        API_ENDPOINTS.POMODORO.SESSIONS.ACTIVE
+      );
+    } catch (error) {
+      // Return null if no active session (204 status)
+      if (error instanceof Error && error.message.includes('204')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves Pomodoro session statistics
+   * @param {number} days Number of days to include in stats (default: 30)
+   * @returns {Promise<PomodoroSessionStats>} Promise resolving to session statistics
+   */
+  async getPomodoroStats(days = 30): Promise<PomodoroSessionStats> {
+    const params = new globalThis.URLSearchParams();
+    params.append('days', days.toString());
+
+    const endpoint = `${API_ENDPOINTS.POMODORO.SESSIONS.STATS}?${params.toString()}`;
+    return this.request<PomodoroSessionStats>(endpoint);
   }
 }
 

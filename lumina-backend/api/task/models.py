@@ -1,11 +1,9 @@
 """Task management models for Lumina."""
 
 import re
-from html import escape
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -44,10 +42,10 @@ class Project(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     color = models.CharField(
-        max_length=7, 
+        max_length=7,
         default="#3B82F6",
         validators=[validate_hex_color],
-        help_text="Hex color code (e.g., #3B82F6)"
+        help_text="Hex color code (e.g., #3B82F6)",
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
     parent = models.ForeignKey(
@@ -63,20 +61,22 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Meta configuration for Project model."""
+
         ordering = ["position", "name"]
         unique_together = ["user", "name"]
 
     def clean(self):
         """Validate and sanitize project data."""
         super().clean()
-        
+
         # Sanitize text inputs
         if self.name:
             self.name = sanitize_text_input(self.name)
         if self.description:
             self.description = sanitize_text_input(self.description)
             validate_text_length(self.description, 5000)
-            
+
         # Validate name length and content
         if self.name and len(self.name.strip()) < 1:
             raise ValidationError("Project name cannot be empty.")
@@ -97,10 +97,10 @@ class Label(models.Model):
 
     name = models.CharField(max_length=100)
     color = models.CharField(
-        max_length=7, 
+        max_length=7,
         default="#6B7280",
         validators=[validate_hex_color],
-        help_text="Hex color code (e.g., #6B7280)"
+        help_text="Hex color code (e.g., #6B7280)",
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="labels")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,11 +112,11 @@ class Label(models.Model):
     def clean(self):
         """Validate and sanitize label data."""
         super().clean()
-        
+
         # Sanitize text inputs
         if self.name:
             self.name = sanitize_text_input(self.name)
-            
+
         # Validate name length and content
         if self.name and len(self.name.strip()) < 1:
             raise ValidationError("Label name cannot be empty.")
@@ -192,7 +192,7 @@ class Task(models.Model):
     def clean(self):
         """Validate and sanitize task data."""
         super().clean()
-        
+
         # Sanitize text inputs
         if self.title:
             self.title = sanitize_text_input(self.title)
@@ -202,17 +202,19 @@ class Task(models.Model):
         if self.notes:
             self.notes = sanitize_text_input(self.notes)
             validate_text_length(self.notes, 50000)
-            
+
         # Validate title length and content
         if self.title and len(self.title.strip()) < 1:
             raise ValidationError("Task title cannot be empty.")
         if self.title and len(self.title) > 500:
             raise ValidationError("Task title is too long (maximum 500 characters).")
-            
+
         # Validate priority
-        if self.priority and self.priority not in [choice[0] for choice in self.PRIORITY_CHOICES]:
+        if self.priority and self.priority not in [
+            choice[0] for choice in self.PRIORITY_CHOICES
+        ]:
             raise ValidationError("Invalid priority value.")
-            
+
         # Validate dates
         if self.date and self.due_date and self.date > self.due_date:
             raise ValidationError("Task date cannot be after due date.")
@@ -223,7 +225,7 @@ class Task(models.Model):
     def save(self, *args, **kwargs):
         # Validate before saving
         self.full_clean()
-        
+
         # Set completed_at when task is marked complete
         if self.is_completed and not self.completed_at:
             self.completed_at = timezone.now()
@@ -266,12 +268,12 @@ class TaskComment(models.Model):
     def clean(self):
         """Validate and sanitize comment data."""
         super().clean()
-        
+
         # Sanitize text inputs
         if self.content:
             self.content = sanitize_text_input(self.content)
             validate_text_length(self.content, 5000)
-            
+
         # Validate content
         if self.content and len(self.content.strip()) < 1:
             raise ValidationError("Comment content cannot be empty.")

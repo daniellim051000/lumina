@@ -4,7 +4,12 @@ import { Toast, ToastProps } from '../components/ui/Toast';
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastContextType {
-  showToast: (type: ToastType, title: string, message?: string, duration?: number) => void;
+  showToast: (
+    type: ToastType,
+    title: string,
+    message?: string,
+    duration?: number
+  ) => void;
   showSuccess: (title: string, message?: string) => void;
   showError: (title: string, message?: string) => void;
   showWarning: (title: string, message?: string) => void;
@@ -70,7 +75,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      
+
       {/* Toast Container */}
       <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
         {toasts.map(toast => (

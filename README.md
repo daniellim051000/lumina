@@ -121,6 +121,18 @@ python manage.py migrate        # Run database migrations
 python manage.py makemigrations # Create new migrations
 python manage.py createsuperuser # Create admin user
 
+# Testing
+python -m pytest               # Run all tests with coverage
+python -m pytest -v            # Verbose test output
+python -m pytest --tb=short    # Short traceback format
+python -m pytest -k "test_name" # Run specific tests by pattern
+python -m pytest api/user/tests/ # Run tests for specific app
+python -m pytest --cov=api --cov-report=term # Coverage report in terminal
+python -m pytest --cov=api --cov-report=html # HTML coverage report
+python -m pytest -n auto       # Run tests in parallel (requires pytest-xdist)
+python -m pytest -m unit       # Run only unit tests
+python -m pytest -m integration # Run only integration tests
+
 # Code Quality
 ruff check .                    # Check code with Ruff
 ruff check . --fix             # Fix issues automatically
@@ -224,11 +236,45 @@ python manage.py collectstatic
 # Configure production database and WSGI server
 ```
 
-## 🧪 Code Quality & Pre-commit Hooks
+## 🧪 Testing
+
+### Backend Testing (pytest)
+The backend uses **pytest** with comprehensive test coverage:
+
+```bash
+cd lumina-backend
+source venv/bin/activate
+
+# Run all tests (includes coverage reporting)
+python -m pytest
+
+# Common test commands
+python -m pytest -v --tb=short                    # Verbose with short tracebacks
+python -m pytest api/user/tests/                  # Test specific app
+python -m pytest -k "test_login"                  # Run tests matching pattern
+python -m pytest -m unit                          # Run only unit tests
+python -m pytest -m integration                   # Run only integration tests
+python -m pytest -n auto                          # Parallel execution
+```
+
+**Test Structure:**
+- `api/user/tests/` - User authentication & management tests
+- `api/task/tests/` - Task management API tests
+- **Coverage target**: 90% minimum
+- **Test types**: Unit tests, Integration tests, API endpoint tests
+
+**Coverage Reports:**
+- Terminal: `--cov-report=term`
+- HTML: `--cov-report=html` (generates `htmlcov/` directory)
+
+### Frontend Testing
+Frontend testing setup can be added as needed for React components.
+
+## 🔧 Code Quality & Pre-commit Hooks
 
 ### Backend (Ruff + Pre-commit)
 - **Ruff**: Fast Python linter and formatter
-- **MyPy**: Static type checking
+- **pytest**: Test runner with coverage reporting
 - **Pre-commit**: Automatically runs on git commits
 
 ### Frontend (ESLint + Prettier + Husky)

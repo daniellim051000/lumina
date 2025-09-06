@@ -30,7 +30,6 @@ import {
 } from '../../hooks/useKeyboardShortcuts';
 import { TaskSkeleton } from '../ui/TaskSkeleton';
 import { ErrorDisplay } from '../ui/ErrorDisplay';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { useToast } from '../../contexts/ToastContext';
 
 interface TaskListViewProps {
@@ -83,7 +82,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   onTaskCreate,
   onTaskUpdate,
 }) => {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
@@ -191,16 +190,23 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       await apiService.updateTask(task.id, {
         is_completed: !task.is_completed,
       });
-      
+
       if (wasCompleted) {
-        showInfo('Task reopened', `"${task.title}" has been marked as incomplete.`);
+        showInfo(
+          'Task reopened',
+          `"${task.title}" has been marked as incomplete.`
+        );
       } else {
-        showSuccess('Task completed', `"${task.title}" has been marked as complete!`);
+        showSuccess(
+          'Task completed',
+          `"${task.title}" has been marked as complete!`
+        );
       }
-      
+
       loadTasks();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update task';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update task';
       setError(errorMessage);
       showError('Failed to update task', errorMessage);
     }
@@ -213,7 +219,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setEditingTask(fullTask);
       setShowTaskModal(true);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load task details';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load task details';
       setError(errorMessage);
       showError('Failed to load task', errorMessage);
     }
@@ -222,14 +229,17 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const handleTaskSave = async (taskData: Partial<Task>) => {
     setModalLoading(true);
     setModalError(null);
-    
+
     try {
       if (editingTask) {
         await apiService.updateTask(editingTask.id, taskData);
         showSuccess('Task updated', 'Your task has been updated successfully.');
       } else {
         await apiService.createTask(taskData);
-        showSuccess('Task created', 'Your new task has been created successfully.');
+        showSuccess(
+          'Task created',
+          'Your new task has been created successfully.'
+        );
       }
 
       setShowTaskModal(false);
@@ -243,7 +253,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
         onTaskCreate?.();
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save task';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to save task';
       setModalError(errorMessage);
       showError('Failed to save task', errorMessage);
       throw err; // Re-throw to let the modal handle it
@@ -255,7 +266,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const handleTaskDelete = async (taskId: number) => {
     setModalLoading(true);
     setModalError(null);
-    
+
     try {
       await apiService.deleteTask(taskId);
       showSuccess('Task deleted', 'The task has been permanently deleted.');
@@ -264,7 +275,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setModalError(null);
       loadTasks();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete task';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to delete task';
       setModalError(errorMessage);
       showError('Failed to delete task', errorMessage);
       throw err; // Re-throw to let the modal handle it
@@ -409,12 +421,15 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
             New Task
           </button>
         </div>
-        
+
         {/* Filters Bar Skeleton */}
         <div className="p-6 bg-white border-b border-gray-200">
           <div className="flex items-center space-x-1 mb-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-10 w-24 bg-gray-200 animate-pulse rounded-lg" />
+              <div
+                key={i}
+                className="h-10 w-24 bg-gray-200 animate-pulse rounded-lg"
+              />
             ))}
           </div>
           <div className="flex items-center space-x-4">
@@ -423,7 +438,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
             <div className="h-10 w-10 bg-gray-200 animate-pulse rounded-lg" />
           </div>
         </div>
-        
+
         {/* Task List Skeleton */}
         <div className="flex-1 overflow-y-auto p-6">
           <TaskSkeleton count={6} />

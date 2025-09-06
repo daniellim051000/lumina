@@ -6,7 +6,6 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.task.models import Label, Project, Task, TaskComment
 from .factories import LabelFactory, ProjectFactory, TaskFactory, UserFactory
 
 
@@ -34,13 +33,13 @@ class TaskManagementIntegrationTest(APITestCase):
         label_url = reverse("task:label-list")
         frontend_label_data = {"name": "Frontend", "color": "#FF5733"}
         backend_label_data = {"name": "Backend", "color": "#33FF57"}
-        
+
         frontend_response = self.client.post(label_url, frontend_label_data)
         backend_response = self.client.post(label_url, backend_label_data)
-        
+
         self.assertEqual(frontend_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(backend_response.status_code, status.HTTP_201_CREATED)
-        
+
         frontend_label_id = frontend_response.data["id"]
         backend_label_id = backend_response.data["id"]
 
@@ -53,7 +52,7 @@ class TaskManagementIntegrationTest(APITestCase):
             "project_id": project_id,
             "due_date": (date.today() + timedelta(days=7)).isoformat(),
         }
-        main_task_response = self.client.post(task_url, main_task_data, format='json')
+        main_task_response = self.client.post(task_url, main_task_data, format="json")
         self.assertEqual(main_task_response.status_code, status.HTTP_201_CREATED)
         main_task_id = main_task_response.data["id"]
 
@@ -68,18 +67,20 @@ class TaskManagementIntegrationTest(APITestCase):
             "parent_task": main_task_id,
             "priority": "P2",
         }
-        
+
         subtask1_response = self.client.post(task_url, subtask1_data)
         subtask2_response = self.client.post(task_url, subtask2_data)
-        
+
         self.assertEqual(subtask1_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(subtask2_response.status_code, status.HTTP_201_CREATED)
-        
+
         subtask1_id = subtask1_response.data["id"]
         subtask2_id = subtask2_response.data["id"]
 
         # 5. Add comments to main task
-        comment_url = reverse("task:task-comment-list", kwargs={"task_id": main_task_id})
+        comment_url = reverse(
+            "task:task-comment-list", kwargs={"task_id": main_task_id}
+        )
         comment_data = {"content": "Started working on the landing page design."}
         comment_response = self.client.post(comment_url, comment_data)
         self.assertEqual(comment_response.status_code, status.HTTP_201_CREATED)
@@ -90,7 +91,9 @@ class TaskManagementIntegrationTest(APITestCase):
             "task_ids": [subtask1_id, subtask2_id],
             "action": "complete",
         }
-        bulk_response = self.client.patch(bulk_update_url, bulk_complete_data, format='json')
+        bulk_response = self.client.patch(
+            bulk_update_url, bulk_complete_data, format="json"
+        )
         self.assertEqual(bulk_response.status_code, status.HTTP_200_OK)
 
         # 7. Verify subtasks are completed
@@ -102,7 +105,7 @@ class TaskManagementIntegrationTest(APITestCase):
         stats_url = reverse("task:task-stats")
         stats_response = self.client.get(stats_url)
         self.assertEqual(stats_response.status_code, status.HTTP_200_OK)
-        
+
         stats = stats_response.data
         self.assertEqual(stats["total"], 3)  # 1 main task + 2 subtasks
         self.assertEqual(stats["completed"], 2)  # 2 subtasks
@@ -128,7 +131,7 @@ class TaskManagementIntegrationTest(APITestCase):
         work_project = ProjectFactory(user=self.user, name="Work")
         personal_project = ProjectFactory(user=self.user, name="Personal")
         urgent_label = LabelFactory(user=self.user, name="Urgent")
-        
+
         # Create tasks with different attributes
         work_task = TaskFactory(
             user=self.user,
@@ -138,7 +141,7 @@ class TaskManagementIntegrationTest(APITestCase):
             is_completed=False,
         )
         work_task.labels.add(urgent_label)
-        
+
         personal_task = TaskFactory(
             user=self.user,
             title="Buy groceries",
@@ -146,7 +149,7 @@ class TaskManagementIntegrationTest(APITestCase):
             priority="P3",
             is_completed=False,
         )
-        
+
         completed_task = TaskFactory(
             user=self.user,
             title="Finish report",
@@ -159,27 +162,27 @@ class TaskManagementIntegrationTest(APITestCase):
 
         # Test project filtering
         work_tasks = self.client.get(task_url, {"project": work_project.id})
-        work_task_ids = [t["id"] for t in work_tasks.data['results']]
+        work_task_ids = [t["id"] for t in work_tasks.data["results"]]
         self.assertIn(work_task.id, work_task_ids)
         self.assertIn(completed_task.id, work_task_ids)
         self.assertNotIn(personal_task.id, work_task_ids)
 
         # Test priority filtering
         p1_tasks = self.client.get(task_url, {"priority": "P1"})
-        p1_task_ids = [t["id"] for t in p1_tasks.data['results']]
+        p1_task_ids = [t["id"] for t in p1_tasks.data["results"]]
         self.assertIn(work_task.id, p1_task_ids)
         self.assertNotIn(personal_task.id, p1_task_ids)
 
         # Test completion status filtering
         pending_tasks = self.client.get(task_url, {"completed": "false"})
-        pending_task_ids = [t["id"] for t in pending_tasks.data['results']]
+        pending_task_ids = [t["id"] for t in pending_tasks.data["results"]]
         self.assertIn(work_task.id, pending_task_ids)
         self.assertIn(personal_task.id, pending_task_ids)
         self.assertNotIn(completed_task.id, pending_task_ids)
 
         # Test search functionality
         search_tasks = self.client.get(task_url, {"search": "presentation"})
-        search_task_ids = [t["id"] for t in search_tasks.data['results']]
+        search_task_ids = [t["id"] for t in search_tasks.data["results"]]
         self.assertIn(work_task.id, search_task_ids)
         self.assertNotIn(personal_task.id, search_task_ids)
 
@@ -197,28 +200,28 @@ class TaskManagementIntegrationTest(APITestCase):
             date=today,
             is_completed=False,
         )
-        
+
         due_today_task = TaskFactory(
             user=self.user,
             title="Due today",
             due_date=today,
             is_completed=False,
         )
-        
+
         overdue_task = TaskFactory(
             user=self.user,
             title="Overdue task",
             due_date=yesterday,
             is_completed=False,
         )
-        
+
         future_task = TaskFactory(
             user=self.user,
             title="Future task",
             due_date=next_week,
             is_completed=False,
         )
-        
+
         week_task = TaskFactory(
             user=self.user,
             title="This week task",
@@ -230,7 +233,7 @@ class TaskManagementIntegrationTest(APITestCase):
 
         # Test today view
         today_tasks = self.client.get(task_url, {"view": "today"})
-        today_task_ids = [t["id"] for t in today_tasks.data['results']]
+        today_task_ids = [t["id"] for t in today_tasks.data["results"]]
         self.assertIn(today_task.id, today_task_ids)
         self.assertIn(due_today_task.id, today_task_ids)
         self.assertNotIn(overdue_task.id, today_task_ids)
@@ -238,14 +241,14 @@ class TaskManagementIntegrationTest(APITestCase):
 
         # Test overdue view
         overdue_tasks = self.client.get(task_url, {"view": "overdue"})
-        overdue_task_ids = [t["id"] for t in overdue_tasks.data['results']]
+        overdue_task_ids = [t["id"] for t in overdue_tasks.data["results"]]
         self.assertIn(overdue_task.id, overdue_task_ids)
         self.assertNotIn(today_task.id, overdue_task_ids)
         self.assertNotIn(future_task.id, overdue_task_ids)
 
         # Test week view
         week_tasks = self.client.get(task_url, {"view": "week"})
-        week_task_ids = [t["id"] for t in week_tasks.data['results']]
+        week_task_ids = [t["id"] for t in week_tasks.data["results"]]
         self.assertIn(today_task.id, week_task_ids)
         self.assertIn(due_today_task.id, week_task_ids)
         self.assertIn(week_task.id, week_task_ids)
@@ -255,7 +258,7 @@ class TaskManagementIntegrationTest(APITestCase):
         """Test comprehensive subtask management."""
         # Create parent task
         parent_task = TaskFactory(user=self.user, title="Main Project")
-        
+
         # Create subtasks
         subtask1 = TaskFactory(
             user=self.user,
@@ -264,7 +267,7 @@ class TaskManagementIntegrationTest(APITestCase):
         )
         subtask2 = TaskFactory(
             user=self.user,
-            title="Subtask 2", 
+            title="Subtask 2",
             parent_task=parent_task,
         )
 
@@ -272,21 +275,21 @@ class TaskManagementIntegrationTest(APITestCase):
 
         # Test that subtasks are excluded by default
         default_tasks = self.client.get(task_url)
-        default_task_ids = [t["id"] for t in default_tasks.data['results']]
+        default_task_ids = [t["id"] for t in default_tasks.data["results"]]
         self.assertIn(parent_task.id, default_task_ids)
         self.assertNotIn(subtask1.id, default_task_ids)
         self.assertNotIn(subtask2.id, default_task_ids)
 
         # Test including subtasks
         all_tasks = self.client.get(task_url, {"subtasks": "include"})
-        all_task_ids = [t["id"] for t in all_tasks.data['results']]
+        all_task_ids = [t["id"] for t in all_tasks.data["results"]]
         self.assertIn(parent_task.id, all_task_ids)
         self.assertIn(subtask1.id, all_task_ids)
         self.assertIn(subtask2.id, all_task_ids)
 
         # Test filtering by parent task
         parent_subtasks = self.client.get(task_url, {"parent_task": parent_task.id})
-        parent_subtask_ids = [t["id"] for t in parent_subtasks.data['results']]
+        parent_subtask_ids = [t["id"] for t in parent_subtasks.data["results"]]
         self.assertIn(subtask1.id, parent_subtask_ids)
         self.assertIn(subtask2.id, parent_subtask_ids)
         self.assertNotIn(parent_task.id, parent_subtask_ids)
@@ -319,8 +322,8 @@ class TaskManagementIntegrationTest(APITestCase):
         # Check project task counts
         project_url = reverse("task:project-list")
         projects = self.client.get(project_url)
-        
-        project_data = {p["id"]: p for p in projects.data['results']}
+
+        project_data = {p["id"]: p for p in projects.data["results"]}
         self.assertEqual(project_data[project1.id]["task_count"], 2)
         self.assertEqual(project_data[project2.id]["task_count"], 1)
 
@@ -329,7 +332,7 @@ class TaskManagementIntegrationTest(APITestCase):
         self.client.patch(task1_url, {"is_completed": True})
 
         updated_projects = self.client.get(project_url)
-        updated_project_data = {p["id"]: p for p in updated_projects.data['results']}
+        updated_project_data = {p["id"]: p for p in updated_projects.data["results"]}
         self.assertEqual(updated_project_data[project1.id]["completed_task_count"], 1)
         self.assertEqual(updated_project_data[project2.id]["completed_task_count"], 0)
 
@@ -341,10 +344,10 @@ class TaskManagementIntegrationTest(APITestCase):
         # Verify project is soft deleted (tasks should remain)
         project1.refresh_from_db()
         self.assertFalse(project1.is_active)
-        
+
         # Tasks should still exist but project should not appear in active list
         remaining_projects = self.client.get(project_url)
-        remaining_project_ids = [p["id"] for p in remaining_projects.data['results']]
+        remaining_project_ids = [p["id"] for p in remaining_projects.data["results"]]
         self.assertNotIn(project1.id, remaining_project_ids)
         self.assertIn(project2.id, remaining_project_ids)
 
@@ -352,7 +355,7 @@ class TaskManagementIntegrationTest(APITestCase):
         """Test error handling in various scenarios."""
         # Test creating project with duplicate name
         ProjectFactory(user=self.user, name="Duplicate")
-        
+
         project_url = reverse("task:project-list")
         duplicate_data = {"name": "Duplicate", "description": "Test"}
         duplicate_response = self.client.post(project_url, duplicate_data)
@@ -370,8 +373,10 @@ class TaskManagementIntegrationTest(APITestCase):
         # Test accessing other user's resources
         other_user = UserFactory()
         other_project = ProjectFactory(user=other_user)
-        
-        other_project_url = reverse("task:project-detail", kwargs={"pk": other_project.id})
+
+        other_project_url = reverse(
+            "task:project-detail", kwargs={"pk": other_project.id}
+        )
         access_response = self.client.get(other_project_url)
         self.assertEqual(access_response.status_code, status.HTTP_404_NOT_FOUND)
 

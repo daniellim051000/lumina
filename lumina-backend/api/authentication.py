@@ -26,17 +26,17 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 class JWTCookieAuthentication(JWTAuthentication):
     """Custom JWT authentication that reads tokens from httpOnly cookies.
-    
+
     This authentication class extends SimpleJWT's JWTAuthentication to support
     secure httpOnly cookies as the primary token source, with fallback to the
     standard Authorization header for API clients.
-    
+
     Authentication Flow:
         1. Check for JWT token in httpOnly cookies (primary method)
         2. If not found, check Authorization header (fallback)
         3. Validate token and return authenticated user
         4. Handle token errors gracefully with appropriate responses
-    
+
     Security Benefits:
         - httpOnly cookies prevent XSS token theft
         - Automatic secure cookie handling
@@ -46,20 +46,21 @@ class JWTCookieAuthentication(JWTAuthentication):
 
     def authenticate(self, request):
         """Authenticate request using JWT token from cookies or Authorization header.
-        
+
         This method implements a dual authentication strategy:
         1. Primary: Extract JWT token from httpOnly cookies
         2. Fallback: Use standard Authorization header
-        
+
         Args:
             request (HttpRequest): The incoming request object
-            
+
         Returns:
             tuple: (User, Token) if authentication succeeds
             None: If no authentication credentials are provided
-            
+
         Raises:
             InvalidToken: If token is present but invalid
+
         """
         # First try to get token from cookies
         raw_token = request.COOKIES.get(settings.JWT_COOKIE_NAME)
@@ -79,16 +80,17 @@ class JWTCookieAuthentication(JWTAuthentication):
                 return header_result
             raise InvalidToken(e.args[0]) from e
 
-    def authenticate_header(self, request):
+    def authenticate_header(self, _request):
         """Return the authentication header for challenge responses.
-        
+
         This method is called by DRF when authentication fails to provide
         the appropriate WWW-Authenticate header for 401 responses.
-        
+
         Args:
             request (HttpRequest): The incoming request object
-            
+
         Returns:
             str: The authentication scheme name for the WWW-Authenticate header
+
         """
         return "Bearer"

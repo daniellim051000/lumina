@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { X, CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import {
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+} from 'lucide-react';
 
 export interface ToastProps {
   id: string;
@@ -59,8 +65,11 @@ export const Toast: React.FC<ToastProps> = ({
       className={`flex items-start p-4 rounded-lg border shadow-sm transition-all duration-300 ease-in-out ${config.className}`}
       role="alert"
     >
-      <IconComponent className={`flex-shrink-0 mt-0.5 mr-3 ${config.iconClassName}`} size={20} />
-      
+      <IconComponent
+        className={`flex-shrink-0 mt-0.5 mr-3 ${config.iconClassName}`}
+        size={20}
+      />
+
       <div className="flex-1 min-w-0">
         <h4 className="font-medium">{title}</h4>
         {message && <p className="mt-1 text-sm opacity-90">{message}</p>}

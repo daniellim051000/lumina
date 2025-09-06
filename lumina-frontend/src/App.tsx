@@ -7,8 +7,10 @@ import { Dashboard } from './pages/Dashboard';
 import { TasksPage } from './pages/Tasks';
 import { Settings } from './pages/Settings';
 import { NotFoundPage } from './pages/NotFound';
+import { PomodoroTimer } from './pages/PomodoroTimer';
 import { injectCSSVariables } from './utils/cssVariables';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { AuthPage } from './components/auth/AuthPage';
 
 const AppContent: React.FC = () => {
@@ -59,10 +61,7 @@ const AppContent: React.FC = () => {
             path="/journal"
             element={<ComingSoonPage section="Journal" />}
           />
-          <Route
-            path="/timer"
-            element={<ComingSoonPage section="Focus Timer" />}
-          />
+          <Route path="/timer" element={<PomodoroTimer />} />
           <Route
             path="/calendar"
             element={<ComingSoonPage section="Calendar" />}
@@ -83,9 +82,11 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <SidebarProvider>
-          <AppContent />
-        </SidebarProvider>
+        <ToastProvider>
+          <SidebarProvider>
+            <AppContent />
+          </SidebarProvider>
+        </ToastProvider>
       </AuthProvider>
     </Router>
   );

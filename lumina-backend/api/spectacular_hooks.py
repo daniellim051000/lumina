@@ -6,29 +6,27 @@ def preprocessing_filter_spec(endpoints):
     filtered = []
     for path, path_regex, method, callback in endpoints:
         # Keep only API endpoints we want to document
-        if path.startswith("/api/"):
-            # Exclude internal endpoints if any
-            if not any(
-                exclude in path
-                for exclude in [
-                    "/admin/",
-                    "/debug/",
-                    "/internal/",
-                ]
-            ):
-                filtered.append((path, path_regex, method, callback))
+        if path.startswith("/api/") and not any(
+            exclude in path
+            for exclude in [
+                "/admin/",
+                "/debug/",
+                "/internal/",
+            ]
+        ):
+            filtered.append((path, path_regex, method, callback))
     return filtered
 
 
-def postprocessing_hook(result, generator, request, public):
+def postprocessing_hook(result, _generator, _request, _public):
     """Post-process the generated schema."""
     # Add custom tags and organize endpoints
     if "paths" in result:
         for path, methods in result["paths"].items():
-            for method, operation in methods.items():
+            for _method, operation in methods.items():
                 # Clear existing auto-generated tags to avoid duplicates
                 operation["tags"] = []
-                
+
                 # Add clean tags based on path patterns
                 if "/tasks/" in path:
                     operation["tags"].append("Tasks")
