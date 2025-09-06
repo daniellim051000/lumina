@@ -6,5 +6,11 @@ export interface ElectronAPI {
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    webkitAudioContext?: AudioContext;
+    electron?: {
+      ipcRenderer: {
+        send(channel: string, ...args: unknown[]): void;
+      };
+    };
   }
 }

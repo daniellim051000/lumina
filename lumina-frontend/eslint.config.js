@@ -34,6 +34,11 @@ module.exports = [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         HeadersInit: 'readonly',
+        Audio: 'readonly',
+        HTMLAudioElement: 'readonly',
+        AudioContext: 'readonly',
+        Notification: 'readonly',
+        NotificationPermission: 'readonly',
       },
       parserOptions: {
         ecmaFeatures: {

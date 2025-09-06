@@ -11,6 +11,8 @@ import {
   PomodoroSessionType,
   PomodoroSessionCreate,
 } from '../types/pomodoro';
+import { useAudio } from './useAudio';
+import { useNotifications } from './useNotifications';
 
 interface UsePomodoroTimerReturn {
   // Timer state
@@ -46,6 +48,11 @@ interface UsePomodoroTimerReturn {
 }
 
 export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
+  // Initialize audio and notification hooks
+  const { playSound } = useAudio();
+  const { showTimerNotification, showBreakReminder, showWorkReminder } =
+    useNotifications();
+
   // State
   const [timerState, setTimerState] = useState<TimerState>({
     isRunning: false,
@@ -155,6 +162,11 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
           timeRemaining: remaining,
         }));
 
+        // Show break reminder during work sessions when 5 minutes left
+        if (remaining === 5 * 60 && timerState.sessionType === 'work') {
+          showBreakReminder(remaining);
+        }
+
         // Auto-complete when timer reaches 0
         if (remaining === 0) {
           completeTimer();
@@ -201,6 +213,11 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
           ...prev,
           timeRemaining: remaining,
         }));
+
+        // Show break reminder during work sessions when 5 minutes left
+        if (remaining === 5 * 60 && timerState.sessionType === 'work') {
+          showBreakReminder(remaining);
+        }
 
         if (remaining === 0) {
           completeTimer();
@@ -290,6 +307,10 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         }));
 
         startLocalTimer(timeInSeconds);
+
+        // Play start sound and show notification
+        playSound('timer-start');
+        showTimerNotification(actualSessionType, false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to start timer');
         console.error('Error starting timer:', err);
@@ -425,8 +446,32 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         timeRemaining: 0,
       }));
 
-      // TODO: Play notification sound
-      // TODO: Show system notification
+      // Play completion sound and show notification
+      const completedSessionType = timerState.sessionType;
+      const soundId =
+        completedSessionType === 'work' ? 'work-complete' : 'break-complete';
+
+      playSound(soundId);
+      showTimerNotification(completedSessionType, true);
+
+      // Show next session reminder
+      const nextSessionType = getNextSessionType();
+      const nextSessionNumber =
+        nextSessionType === 'work'
+          ? completedSessionType === 'long_break'
+            ? 1
+            : timerState.sessionNumber + 1
+          : timerState.sessionNumber;
+
+      if (nextSessionType === 'work') {
+        setTimeout(() => {
+          showWorkReminder(nextSessionNumber);
+        }, 3000); // Show work reminder 3 seconds after completion
+      } else {
+        setTimeout(() => {
+          showBreakReminder(getSessionDuration(nextSessionType) * 60);
+        }, 3000); // Show break reminder 3 seconds after completion
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete timer');
       console.error('Error completing timer:', err);
