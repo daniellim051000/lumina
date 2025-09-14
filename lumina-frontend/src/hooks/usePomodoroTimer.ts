@@ -109,45 +109,6 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     []
   );
 
-  // Load active session from the server
-  const loadActiveSession = useCallback(async () => {
-    try {
-      const activeSession = await apiService.getActivePomodoroSession();
-
-      if (activeSession) {
-        const remainingSeconds = activeSession.remaining_minutes * 60;
-        const isRunning = activeSession.status === 'active';
-        const isPaused = activeSession.status === 'paused';
-
-        setTimerState(prev => ({
-          ...prev,
-          currentSession: activeSession,
-          timeRemaining: remainingSeconds,
-          sessionType: activeSession.session_type,
-          sessionNumber: activeSession.session_number,
-          isRunning,
-          isPaused,
-        }));
-
-        // If the session is active, start the local timer
-        if (isRunning) {
-          startLocalTimer(remainingSeconds);
-        }
-      }
-    } catch (err) {
-      console.error('Error loading active session:', err);
-    }
-  }, [startLocalTimer]);
-
-  // Use refs to access latest values without causing dependency cycles
-  const timerStateRef = useRef(timerState);
-  const completeTimerRef = useRef<() => Promise<void>>();
-
-  // Update refs when values change
-  useEffect(() => {
-    timerStateRef.current = timerState;
-  }, [timerState]);
-
   // Start local timer countdown
   const startLocalTimer = useCallback(
     (initialSeconds: number) => {
@@ -186,6 +147,45 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     },
     [showBreakReminder]
   );
+
+  // Load active session from the server
+  const loadActiveSession = useCallback(async () => {
+    try {
+      const activeSession = await apiService.getActivePomodoroSession();
+
+      if (activeSession) {
+        const remainingSeconds = activeSession.remaining_minutes * 60;
+        const isRunning = activeSession.status === 'active';
+        const isPaused = activeSession.status === 'paused';
+
+        setTimerState(prev => ({
+          ...prev,
+          currentSession: activeSession,
+          timeRemaining: remainingSeconds,
+          sessionType: activeSession.session_type,
+          sessionNumber: activeSession.session_number,
+          isRunning,
+          isPaused,
+        }));
+
+        // If the session is active, start the local timer
+        if (isRunning) {
+          startLocalTimer(remainingSeconds);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading active session:', err);
+    }
+  }, [startLocalTimer]);
+
+  // Use refs to access latest values without causing dependency cycles
+  const timerStateRef = useRef(timerState);
+  const completeTimerRef = useRef<() => Promise<void>>();
+
+  // Update refs when values change
+  useEffect(() => {
+    timerStateRef.current = timerState;
+  }, [timerState]);
 
   // Stop local timer
   const stopLocalTimer = useCallback(() => {
