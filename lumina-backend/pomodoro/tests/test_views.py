@@ -137,8 +137,8 @@ class PomodoroPresetViewSetTest(TestCase):
         response = self.client.get(self.presets_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 2)
-        preset_names = [p["name"] for p in response.data['results']]
+        self.assertEqual(len(response.data["results"]), 2)
+        preset_names = [p["name"] for p in response.data["results"]]
         self.assertIn("Focus", preset_names)
         self.assertIn("Quick", preset_names)
         self.assertNotIn("Other", preset_names)
@@ -245,7 +245,7 @@ class PomodoroSessionViewSetTest(TestCase):
         response = self.client.get(self.sessions_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(len(response.data["results"]), 2)
 
     def test_create_session(self):
         """Test creating a new session."""
@@ -415,8 +415,8 @@ class PomodoroSessionViewSetTest(TestCase):
         response = self.client.get(f"{self.sessions_url}?type=work")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]["id"], work_session.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], work_session.id)
 
     def test_filter_sessions_by_status(self):
         """Test filtering sessions by status."""
@@ -426,8 +426,8 @@ class PomodoroSessionViewSetTest(TestCase):
         response = self.client.get(f"{self.sessions_url}?status=completed")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]["id"], completed_session.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], completed_session.id)
 
     def test_filter_sessions_by_date_range(self):
         """Test filtering sessions by date range."""
@@ -447,8 +447,8 @@ class PomodoroSessionViewSetTest(TestCase):
         response = self.client.get(f"{self.sessions_url}?start_date={today}")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]["id"], new_session.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], new_session.id)
 
     def test_unauthorized_access(self):
         """Test that unauthenticated users cannot access sessions."""

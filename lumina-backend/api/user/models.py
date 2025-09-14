@@ -6,27 +6,27 @@ from django.dispatch import receiver
 
 class UserProfile(models.Model):
     """Extended user profile to store additional user preferences"""
-    
+
     LANGUAGE_CHOICES = [
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
     ]
-    
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     language_preference = models.CharField(
         max_length=10,
         choices=LANGUAGE_CHOICES,
-        default='en',
-        help_text='Preferred language for the interface'
+        default="en",
+        help_text="Preferred language for the interface",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        db_table = 'user_profiles'
-        verbose_name = 'User Profile'
-        verbose_name_plural = 'User Profiles'
-    
+        db_table = "user_profiles"
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
     def __str__(self):
         return f"{self.user.username}'s profile"
 
@@ -41,5 +41,5 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     """Save the profile when the user is saved"""
-    if hasattr(instance, 'profile'):
+    if hasattr(instance, "profile"):
         instance.profile.save()

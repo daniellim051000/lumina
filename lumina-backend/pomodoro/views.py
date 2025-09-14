@@ -36,7 +36,7 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
     def get_object(self):
         """Get or create settings for the current user."""
         # Check if pk is provided and valid
-        pk = self.kwargs.get('pk')
+        pk = self.kwargs.get("pk")
         if pk:
             # If pk provided, ensure it belongs to current user
             try:
@@ -44,8 +44,9 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
             except PomodoroSettings.DoesNotExist:
                 # If settings don't exist or don't belong to user, raise 404
                 from django.http import Http404
+
                 raise Http404("Settings not found")
-        
+
         # If no pk provided, get or create settings for current user
         settings, created = PomodoroSettings.objects.get_or_create(
             user=self.request.user
@@ -70,6 +71,15 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         return Response(serializer.data)
+
+    def partial_update(self, request, pk=None):
+        """Handle PATCH requests to update user's Pomodoro settings."""
+        return self.update(request, pk, partial=True)
+
+    @action(detail=False, methods=["patch"])
+    def patch(self, request):
+        """Handle PATCH requests to /pomodoro/settings/ (without ID)."""
+        return self.update(request, partial=True)
 
     def destroy(self, request, pk=None):
         """Reset settings to defaults instead of deleting."""

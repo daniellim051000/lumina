@@ -2,11 +2,18 @@
  * PomodoroTimer page component - Main Pomodoro timer interface
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePomodoroTimer } from '../hooks/usePomodoroTimer';
 import { TimerDisplay } from '../components/timer/TimerDisplay';
 import { TimerControls } from '../components/timer/TimerControls';
-import { PomodoroSessionType } from '../types/pomodoro';
+import { PomodoroSettingsModal } from '../components/timer/PomodoroSettingsModal';
+import {
+  PomodoroSessionType,
+  PomodoroPreset,
+  PomodoroSettingsUpdate,
+  PomodoroPresetData,
+} from '../types/pomodoro';
+import { apiService } from '../services/api';
 
 export const PomodoroTimer: React.FC = () => {
   const {
@@ -21,9 +28,30 @@ export const PomodoroTimer: React.FC = () => {
     error,
     formatTime,
     canStartTimer,
+    loadSettings, // Method to refresh settings from API
   } = usePomodoroTimer();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [presets, setPresets] = useState<PomodoroPreset[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  // Load presets when component mounts or when settings modal opens
+  useEffect(() => {
+    if (showSettings) {
+      loadPresets();
+    }
+  }, [showSettings]);
+
+  const loadPresets = async () => {
+    try {
+      const presetsData = await apiService.getPomodoroPresets();
+      setPresets(presetsData);
+    } catch (error) {
+      console.error('Failed to load presets:', error);
+      setSettingsError('Failed to load presets');
+    }
+  };
 
   // Get total duration for the current session
   const getTotalDuration = (): number => {
@@ -50,7 +78,68 @@ export const PomodoroTimer: React.FC = () => {
 
   // Handle settings modal
   const handleSettings = () => {
+    setSettingsError(null);
     setShowSettings(true);
+  };
+
+  const handleCloseSettings = () => {
+    setShowSettings(false);
+    setSettingsError(null);
+  };
+
+  const handleSaveSettings = async (settingsData: PomodoroSettingsUpdate) => {
+    setSettingsLoading(true);
+    setSettingsError(null);
+
+    try {
+      await apiService.updatePomodoroSettings(settingsData);
+      // Refresh settings from the hook to update the timer
+      await loadSettings();
+      setShowSettings(false);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setSettingsError(
+        error instanceof Error ? error.message : 'Failed to save settings'
+      );
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSavePreset = async (presetData: PomodoroPresetData) => {
+    try {
+      await apiService.createPomodoroPreset(presetData);
+      // Reload presets to show the new one
+      await loadPresets();
+    } catch (error) {
+      console.error('Failed to save preset:', error);
+      setSettingsError(
+        error instanceof Error ? error.message : 'Failed to save preset'
+      );
+    }
+  };
+
+  const handleDeletePreset = async (presetId: number) => {
+    try {
+      await apiService.deletePomodoroPreset(presetId);
+      // Reload presets to remove the deleted one
+      await loadPresets();
+    } catch (error) {
+      console.error('Failed to delete preset:', error);
+      setSettingsError(
+        error instanceof Error ? error.message : 'Failed to delete preset'
+      );
+    }
+  };
+
+  const handleApplyPreset = (presetId: number) => {
+    // This handler is called when a preset is applied - it updates the form data in the modal
+    // The actual API call to apply the preset to settings is handled separately
+    console.log('Applied preset:', presetId);
+  };
+
+  const handleClearError = () => {
+    setSettingsError(null);
   };
 
   // Get background color based on session type
@@ -220,24 +309,20 @@ export const PomodoroTimer: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Modal Placeholder */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Timer Settings</h3>
-            <p className="text-gray-600 mb-4">
-              Settings modal coming soon! You can adjust work duration, break
-              duration, and other preferences here.
-            </p>
-            <button
-              onClick={() => setShowSettings(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Settings Modal */}
+      <PomodoroSettingsModal
+        isOpen={showSettings}
+        settings={settings}
+        presets={presets}
+        onSave={handleSaveSettings}
+        onCancel={handleCloseSettings}
+        onSavePreset={handleSavePreset}
+        onDeletePreset={handleDeletePreset}
+        onApplyPreset={handleApplyPreset}
+        loading={settingsLoading}
+        error={settingsError}
+        onClearError={handleClearError}
+      />
     </div>
   );
 };
