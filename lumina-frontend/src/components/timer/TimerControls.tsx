@@ -61,7 +61,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         {!isRunning && !isPaused ? (
           // Start button
           <button
-            onClick={() => onStart()}
+            onClick={() => onStart('work')}
             disabled={!canStartTimer || isLoading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-8 rounded-full flex items-center space-x-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >

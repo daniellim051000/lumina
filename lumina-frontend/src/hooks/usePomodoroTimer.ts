@@ -44,6 +44,7 @@ interface UsePomodoroTimerReturn {
   // Utility functions
   formatTime: (seconds: number) => string;
   getNextSessionType: () => PomodoroSessionType;
+  updateTimerDisplay: (sessionType: PomodoroSessionType) => void;
   canStartTimer: boolean;
 }
 
@@ -80,6 +81,18 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
       const userSettings = await apiService.getPomodoroSettings();
       setSettings(userSettings);
       setError(null);
+
+      // Set initial timeRemaining based on current session type if no timer is active
+      setTimerState(prev => {
+        if (!prev.isRunning && !prev.isPaused && !prev.currentSession) {
+          const duration = userSettings.work_duration * 60; // Convert to seconds
+          return {
+            ...prev,
+            timeRemaining: duration,
+          };
+        }
+        return prev;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
       console.error('Error loading Pomodoro settings:', err);
@@ -97,6 +110,18 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
           await apiService.updatePomodoroSettings(newSettings);
         setSettings(updatedSettings);
         setError(null);
+
+        // Update timeRemaining if no timer is active to reflect new settings
+        setTimerState(prev => {
+          if (!prev.isRunning && !prev.isPaused && !prev.currentSession) {
+            const duration = updatedSettings.work_duration * 60; // Convert to seconds
+            return {
+              ...prev,
+              timeRemaining: duration,
+            };
+          }
+          return prev;
+        });
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to update settings'
@@ -259,6 +284,28 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     [settings]
   );
 
+  // Update timer display for a specific session type without starting timer
+  const updateTimerDisplay = useCallback(
+    (sessionType: PomodoroSessionType) => {
+      if (
+        !settings ||
+        timerState.isRunning ||
+        timerState.isPaused ||
+        timerState.currentSession
+      ) {
+        return;
+      }
+
+      const duration = getSessionDuration(sessionType) * 60; // Convert to seconds
+      setTimerState(prev => ({
+        ...prev,
+        timeRemaining: duration,
+        sessionType: sessionType,
+      }));
+    },
+    [settings, timerState, getSessionDuration]
+  );
+
   // Determine next session type based on current state
   const getNextSessionType = useCallback((): PomodoroSessionType => {
     const { sessionType, sessionNumber } = timerState;
@@ -412,7 +459,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         currentSession: null,
         isRunning: false,
         isPaused: false,
-        timeRemaining: 0,
+        timeRemaining: settings ? getSessionDuration(prev.sessionType) * 60 : 0,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to skip timer');
@@ -420,7 +467,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [timerState, stopLocalTimer]);
+  }, [timerState, stopLocalTimer, settings, getSessionDuration]);
 
   // Stop the current timer (cancel)
   const stopTimer = useCallback(async () => {
@@ -438,7 +485,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
         currentSession: null,
         isRunning: false,
         isPaused: false,
-        timeRemaining: 0,
+        timeRemaining: settings ? getSessionDuration(prev.sessionType) * 60 : 0,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop timer');
@@ -446,7 +493,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [timerState, stopLocalTimer]);
+  }, [timerState, stopLocalTimer, settings, getSessionDuration]);
 
   // Complete the current timer
   const completeTimer = useCallback(async () => {
@@ -464,14 +511,6 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
       stopLocalTimer();
 
-      setTimerState(prev => ({
-        ...prev,
-        currentSession: null,
-        isRunning: false,
-        isPaused: false,
-        timeRemaining: 0,
-      }));
-
       // Play completion sound and show notification
       const completedSessionType = timerStateRef.current.sessionType;
       const soundId =
@@ -482,6 +521,15 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
       // Show next session reminder
       const nextSessionType = getNextSessionType();
+
+      setTimerState(prev => ({
+        ...prev,
+        currentSession: null,
+        isRunning: false,
+        isPaused: false,
+        sessionType: nextSessionType,
+        timeRemaining: settings ? getSessionDuration(nextSessionType) * 60 : 0,
+      }));
       const nextSessionNumber =
         nextSessionType === 'work'
           ? completedSessionType === 'long_break'
@@ -512,6 +560,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     showWorkReminder,
     showBreakReminder,
     getSessionDuration,
+    settings,
   ]);
 
   // Update completeTimer ref when function changes
@@ -581,6 +630,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     // Utilities
     formatTime,
     getNextSessionType,
+    updateTimerDisplay,
     canStartTimer,
   };
 };
