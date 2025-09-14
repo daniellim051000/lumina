@@ -64,7 +64,7 @@ export interface PomodoroSessionCreate {
   task?: number;
   session_type: PomodoroSessionType;
   planned_duration: number;
-  session_number: number;
+  session_number?: number; // Optional - defaults to 1 on backend
   notes?: string;
 }
 

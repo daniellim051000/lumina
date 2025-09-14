@@ -775,7 +775,7 @@ class ApiService {
     return this.request<PomodoroSettings>(
       API_ENDPOINTS.POMODORO.SETTINGS.UPDATE,
       {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(settingsData),
       }
     );
@@ -960,7 +960,7 @@ class ApiService {
     return this.request<PomodoroSession>(
       API_ENDPOINTS.POMODORO.SESSIONS.UPDATE(sessionId),
       {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(sessionData),
       }
     );

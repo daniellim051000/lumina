@@ -36,7 +36,7 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
     def get_object(self):
         """Get or create settings for the current user."""
         # Check if pk is provided and valid
-        pk = self.kwargs.get('pk')
+        pk = self.kwargs.get("pk")
         if pk:
             # If pk provided, ensure it belongs to current user
             try:
@@ -44,8 +44,9 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
             except PomodoroSettings.DoesNotExist:
                 # If settings don't exist or don't belong to user, raise 404
                 from django.http import Http404
+
                 raise Http404("Settings not found")
-        
+
         # If no pk provided, get or create settings for current user
         settings, created = PomodoroSettings.objects.get_or_create(
             user=self.request.user
@@ -64,11 +65,21 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk=None, partial=False):
         """Update user's Pomodoro settings."""
+        # Always use the current user's settings, ignore pk parameter
         settings = self.get_object()
         serializer = self.get_serializer(settings, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data)
 
+    def partial_update(self, request, pk=None):
+        """Handle PATCH requests without requiring pk in URL for singleton settings."""
+        # Always use the current user's settings, ignore pk parameter
+        # This enables PATCH /pomodoro/settings/ to work
+        settings = self.get_object()
+        serializer = self.get_serializer(settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
     def destroy(self, request, pk=None):
