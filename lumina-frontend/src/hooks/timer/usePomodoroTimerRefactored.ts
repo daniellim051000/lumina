@@ -8,11 +8,11 @@ import {
   PomodoroSettings,
   TimerState,
   PomodoroSessionType,
-} from '../types/pomodoro';
-import { useTimerCore } from './timer/useTimerCore';
-import { useTimerSession } from './timer/useTimerSession';
-import { useTimerSettings } from './timer/useTimerSettings';
-import { useTimerEffects } from './timer/useTimerEffects';
+} from '../../types/pomodoro';
+import { useTimerCore } from './useTimerCore';
+import { useTimerSession } from './useTimerSession';
+import { useTimerSettings } from './useTimerSettings';
+import { useTimerEffects } from './useTimerEffects';
 
 interface UsePomodoroTimerReturn {
   // Timer state
@@ -45,7 +45,6 @@ interface UsePomodoroTimerReturn {
   formatTime: (seconds: number) => string;
   getNextSessionType: () => PomodoroSessionType;
   updateTimerDisplay: (sessionType: PomodoroSessionType) => void;
-  refreshTimerDisplay: () => void;
   canStartTimer: boolean;
 }
 
@@ -81,13 +80,6 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
       handleTimerComplete();
     },
   });
-
-  // Load settings and active session on mount
-  useEffect(() => {
-    timerSettings.loadSettings();
-    timerSession.loadActiveSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on mount
 
   // Initialize display on settings load
   useEffect(() => {
@@ -157,19 +149,17 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     } catch (error) {
       console.error('Error completing timer:', error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerSession, timerEffects, sessionType, timerSettings.settings]);
 
   const startNextSession = useCallback(
     async (type: PomodoroSessionType, taskId?: number) => {
-      const duration = timerSettings.getSessionDuration(type);
-      const durationSeconds = duration * 60;
+      const duration = timerSettings.getSessionDuration(type) * 60;
 
-      // Create new session with duration in minutes and current session number
-      await timerSession.createSession(type, duration, timerSession.sessionNumber, taskId);
+      // Create new session
+      await timerSession.createSession(type, taskId);
 
       // Start timer
-      timerCore.startTimer(durationSeconds);
+      timerCore.startTimer(duration);
       setSessionType(type);
 
       // Show notification
@@ -208,7 +198,7 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
 
     try {
       await timerSession.updateSession(timerSession.currentSession.id, {
-        paused_at: undefined,
+        paused_at: null,
       });
     } catch (error) {
       console.error('Error updating session on resume:', error);
@@ -234,7 +224,8 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     if (timerSession.currentSession) {
       try {
         await timerSession.updateSession(timerSession.currentSession.id, {
-          status: 'cancelled',
+          ended_at: new Date().toISOString(),
+          is_completed: false,
         });
       } catch (error) {
         console.error('Error stopping session:', error);
@@ -261,14 +252,6 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     },
     [timerCore.isRunning, timerCore.isPaused, timerSettings]
   );
-
-  const refreshTimerDisplay = useCallback(() => {
-    // Force update the timer display with current session type and latest settings
-    if (!timerCore.isRunning && !timerCore.isPaused && timerSettings.settings) {
-      const duration = timerSettings.getSessionDuration(sessionType) * 60;
-      setTimeRemaining(duration);
-    }
-  }, [timerCore.isRunning, timerCore.isPaused, timerSettings, sessionType]);
 
   const formatTime = useCallback((seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -303,7 +286,6 @@ export const usePomodoroTimer = (): UsePomodoroTimerReturn => {
     formatTime,
     getNextSessionType: timerSession.getNextSessionType,
     updateTimerDisplay,
-    refreshTimerDisplay,
     canStartTimer,
   };
 };

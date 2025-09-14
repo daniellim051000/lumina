@@ -85,6 +85,36 @@ class PomodoroSettingsViewSetTest(TestCase):
         self.assertEqual(settings.work_duration, original_work_duration)  # Unchanged
         self.assertEqual(settings.volume, 0.3)  # Changed
 
+    def test_partial_update_settings_without_id(self):
+        """Test partially updating user's Pomodoro settings without providing ID (singleton pattern)."""
+        settings = PomodoroSettingsFactory(user=self.user)
+        original_work_duration = settings.work_duration
+
+        data = {"volume": 0.8, "enable_audio": False}
+
+        # PATCH to list URL without ID - this should work for singleton resources
+        response = self.client.patch(self.settings_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        settings.refresh_from_db()
+        self.assertEqual(settings.work_duration, original_work_duration)  # Unchanged
+        self.assertEqual(settings.volume, 0.8)  # Changed
+        self.assertFalse(settings.enable_audio)  # Changed
+
+    def test_partial_update_creates_settings_if_not_exists(self):
+        """Test that PATCH creates settings if they don't exist."""
+        # Ensure no settings exist
+        PomodoroSettings.objects.filter(user=self.user).delete()
+
+        data = {"work_duration": 35, "volume": 0.9}
+
+        response = self.client.patch(self.settings_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        settings = PomodoroSettings.objects.get(user=self.user)
+        self.assertEqual(settings.work_duration, 35)
+        self.assertEqual(settings.volume, 0.9)
+
     def test_reset_settings_to_defaults(self):
         """Test resetting settings to defaults via DELETE."""
         settings = PomodoroSettingsFactory(
@@ -482,3 +512,96 @@ class PomodoroSessionViewSetTest(TestCase):
         response = self.client.post(self.sessions_url, data)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_session_missing_planned_duration(self):
+        """Test that creating a session without planned_duration fails."""
+        data = {
+            "session_type": "work",
+            "session_number": 1,
+        }
+
+        response = self.client.post(self.sessions_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("planned_duration", str(response.data))
+
+    def test_create_session_without_session_number_uses_default(self):
+        """Test that creating a session without session_number uses default value 1."""
+        data = {
+            "session_type": "work",
+            "planned_duration": 25,
+        }
+
+        response = self.client.post(self.sessions_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        session = PomodoroSession.objects.get(id=response.data["id"])
+        self.assertEqual(session.session_number, 1)  # Default value
+
+    def test_create_session_missing_session_type(self):
+        """Test that creating a session without session_type fails."""
+        data = {
+            "planned_duration": 25,
+            "session_number": 1,
+        }
+
+        response = self.client.post(self.sessions_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("session_type", str(response.data))
+
+    def test_create_session_with_wrong_field_names(self):
+        """Test that frontend-style field names fail validation."""
+        data = {
+            "session_type": "work",
+            "planned_duration": 25,
+            "session_number": 1,
+            "task_id": self.task.id,  # Wrong field name - should be 'task'
+            "started_at": "2025-01-01T10:00:00Z",  # Not expected field
+        }
+
+        response = self.client.post(self.sessions_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # The session should be created but task should be None since task_id is ignored
+        session = PomodoroSession.objects.get(id=response.data["id"])
+        self.assertIsNone(session.task)  # task_id was ignored
+
+    def test_update_session_status_only(self):
+        """Test that updating only the status field works with PATCH."""
+        session = PomodoroSessionFactory(user=self.user, status="active")
+
+        data = {"status": "cancelled"}
+
+        response = self.client.patch(f"{self.sessions_url}{session.id}/", data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        session.refresh_from_db()
+        self.assertEqual(session.status, "cancelled")
+
+    def test_update_session_partial_fields(self):
+        """Test that PATCH with only some fields works without requiring all fields."""
+        session = PomodoroSessionFactory(user=self.user, status="active")
+
+        data = {
+            "status": "completed",
+            "notes": "Great work session!"
+        }
+
+        response = self.client.patch(f"{self.sessions_url}{session.id}/", data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        session.refresh_from_db()
+        self.assertEqual(session.status, "completed")
+        self.assertEqual(session.notes, "Great work session!")
+
+    def test_update_session_invalid_status_transition(self):
+        """Test that invalid status transitions are rejected."""
+        session = CompletedPomodoroSessionFactory(user=self.user)  # Already completed
+
+        data = {"status": "active"}  # Can't reactivate completed session
+
+        response = self.client.patch(f"{self.sessions_url}{session.id}/", data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Cannot change status", str(response.data))

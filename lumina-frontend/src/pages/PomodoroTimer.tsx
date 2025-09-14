@@ -29,12 +29,19 @@ export const PomodoroTimer: React.FC = () => {
     formatTime,
     canStartTimer,
     loadSettings, // Method to refresh settings from API
+    updateTimerDisplay,
+    refreshTimerDisplay,
   } = usePomodoroTimer();
 
   const [showSettings, setShowSettings] = useState(false);
   const [presets, setPresets] = useState<PomodoroPreset[]>([]);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  // Load settings when component mounts
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   // Load presets when component mounts or when settings modal opens
   useEffect(() => {
@@ -93,8 +100,10 @@ export const PomodoroTimer: React.FC = () => {
 
     try {
       await apiService.updatePomodoroSettings(settingsData);
-      // Refresh settings from the hook to update the timer
-      await loadSettings();
+      // Force refresh settings from the API to get the latest values
+      await loadSettings(true);
+      // Force update the timer display with the new settings
+      refreshTimerDisplay();
       setShowSettings(false);
     } catch (error) {
       console.error('Failed to save settings:', error);

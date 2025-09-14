@@ -18,6 +18,7 @@ import {
 import { DurationInput } from './DurationInput';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorDisplay } from '../ui/ErrorDisplay';
+import { InlineInputModal } from '../ui/InlineInputModal';
 
 interface PomodoroSettingsModalProps {
   isOpen: boolean;
@@ -177,6 +178,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPresetNameModal, setShowPresetNameModal] = useState(false);
 
   // Update form data when settings change
   useEffect(() => {
@@ -202,7 +204,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
     setIsSubmitting(true);
     try {
       await onSave(formData);
-    } catch (error) {
+    } catch {
       // Error handling is done at parent level
     } finally {
       setIsSubmitting(false);
@@ -233,25 +235,45 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
   };
 
   const handleSavePreset = async () => {
-    // For now, we'll use a simple prompt for the preset name
-    // In a real implementation, this could be a separate modal or inline input
-    const name = prompt('Enter preset name:');
-    if (name && name.trim()) {
-      const presetData: PomodoroPresetData = {
-        name: name.trim(),
-        work_duration: formData.work_duration,
-        short_break_duration: formData.short_break_duration,
-        long_break_duration: formData.long_break_duration,
-        sessions_until_long_break: formData.sessions_until_long_break,
-        is_default: false,
-      };
+    setShowPresetNameModal(true);
+  };
 
-      try {
-        await onSavePreset(presetData);
-      } catch (error) {
-        // Error handling is done at parent level
-      }
+  const handlePresetNameConfirm = async (name: string) => {
+    setShowPresetNameModal(false);
+
+    const presetData: PomodoroPresetData = {
+      name,
+      work_duration: formData.work_duration,
+      short_break_duration: formData.short_break_duration,
+      long_break_duration: formData.long_break_duration,
+      sessions_until_long_break: formData.sessions_until_long_break,
+      is_default: false,
+    };
+
+    try {
+      await onSavePreset(presetData);
+    } catch {
+      // Error handling is done at parent level
     }
+  };
+
+  const handlePresetNameCancel = () => {
+    setShowPresetNameModal(false);
+  };
+
+  const validatePresetName = (name: string): string | null => {
+    if (name.length < 2) {
+      return 'Preset name must be at least 2 characters long';
+    }
+    if (name.length > 30) {
+      return 'Preset name must be 30 characters or less';
+    }
+    if (
+      presets.some(preset => preset.name.toLowerCase() === name.toLowerCase())
+    ) {
+      return 'A preset with this name already exists';
+    }
+    return null;
   };
 
   if (!isOpen) return null;
@@ -449,6 +471,17 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Preset Name Input Modal */}
+      <InlineInputModal
+        isOpen={showPresetNameModal}
+        title="Save as Preset"
+        placeholder="Enter preset name..."
+        maxLength={30}
+        onConfirm={handlePresetNameConfirm}
+        onCancel={handlePresetNameCancel}
+        validation={validatePresetName}
+      />
     </div>
   );
 };

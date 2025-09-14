@@ -65,21 +65,22 @@ class PomodoroSettingsViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk=None, partial=False):
         """Update user's Pomodoro settings."""
+        # Always use the current user's settings, ignore pk parameter
         settings = self.get_object()
         serializer = self.get_serializer(settings, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         return Response(serializer.data)
 
     def partial_update(self, request, pk=None):
-        """Handle PATCH requests to update user's Pomodoro settings."""
-        return self.update(request, pk, partial=True)
-
-    @action(detail=False, methods=["patch"])
-    def patch(self, request):
-        """Handle PATCH requests to /pomodoro/settings/ (without ID)."""
-        return self.update(request, partial=True)
+        """Handle PATCH requests without requiring pk in URL for singleton settings."""
+        # Always use the current user's settings, ignore pk parameter
+        # This enables PATCH /pomodoro/settings/ to work
+        settings = self.get_object()
+        serializer = self.get_serializer(settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, pk=None):
         """Reset settings to defaults instead of deleting."""
