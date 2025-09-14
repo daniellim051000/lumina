@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django_ratelimit.decorators import ratelimit
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -20,6 +20,7 @@ def set_jwt_cookies(response, tokens):
         settings.JWT_COOKIE_NAME,
         tokens["access_token"],
         max_age=settings.JWT_COOKIE_MAX_AGE,
+        path="/",  # Ensure cookies are accessible for all API routes
         httponly=settings.JWT_COOKIE_HTTPONLY,
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
@@ -28,6 +29,7 @@ def set_jwt_cookies(response, tokens):
         settings.JWT_REFRESH_COOKIE_NAME,
         tokens["refresh_token"],
         max_age=settings.JWT_REFRESH_COOKIE_MAX_AGE,
+        path="/",  # Ensure cookies are accessible for all API routes
         httponly=settings.JWT_COOKIE_HTTPONLY,
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
@@ -39,10 +41,12 @@ def clear_jwt_cookies(response):
     """Clear JWT cookies on logout."""
     response.delete_cookie(
         settings.JWT_COOKIE_NAME,
+        path="/",  # Must match the path used when setting the cookie
         samesite=settings.JWT_COOKIE_SAMESITE,
     )
     response.delete_cookie(
         settings.JWT_REFRESH_COOKIE_NAME,
+        path="/",  # Must match the path used when setting the cookie
         samesite=settings.JWT_COOKIE_SAMESITE,
     )
     return response
@@ -57,12 +61,9 @@ from .serializers import (
 )
 
 
-@method_decorator(
-    ratelimit(key="ip", rate=settings.AUTH_SIGNUP_RATE_LIMIT, method="POST"),
-    name="post",
-)
+@method_decorator(csrf_exempt, name="dispatch")
 class SignUpView(APIView):
-    """User registration view with rate limiting."""
+    """User registration view."""
 
     permission_classes = [AllowAny]
 
@@ -99,12 +100,9 @@ class SignUpView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@method_decorator(
-    ratelimit(key="ip", rate=settings.AUTH_SIGNIN_RATE_LIMIT, method="POST"),
-    name="post",
-)
+@method_decorator(csrf_exempt, name="dispatch")
 class SignInView(APIView):
-    """User login view with rate limiting."""
+    """User login view."""
 
     permission_classes = [AllowAny]
 

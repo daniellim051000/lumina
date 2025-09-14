@@ -26,7 +26,7 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -180,10 +180,19 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS", default="http://localhost:3000"
+    "CORS_ALLOWED_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000"
 ).split(",")
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Additional CORS settings for development
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
+if DEBUG and not CORS_ALLOW_ALL_ORIGINS:
+    # In development, ensure both localhost variations are allowed
+    if "http://localhost:3000" not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+    if "http://127.0.0.1:3000" not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append("http://127.0.0.1:3000")
 
 # Allow specific headers for Electron communication
 CORS_ALLOW_HEADERS = [
