@@ -7,6 +7,11 @@ psycopg2-binary==2.9.10
 python-decouple==3.8
 sqlparse==0.5.3
 
+# Production server & deployment
+gunicorn==23.0.0
+whitenoise==6.8.2
+dj-database-url==2.3.0
+
 # Development dependencies
 pre-commit==4.3.0
 ruff==0.12.11

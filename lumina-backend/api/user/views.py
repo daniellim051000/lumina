@@ -38,17 +38,28 @@ def set_jwt_cookies(response, tokens):
 
 
 def clear_jwt_cookies(response):
-    """Clear JWT cookies on logout."""
-    response.delete_cookie(
+    """Clear JWT cookies on logout.
+
+    Uses ``set_cookie`` with an immediate expiry rather than ``delete_cookie``
+    because Django's ``delete_cookie`` cannot emit the ``Secure`` attribute for
+    arbitrary cookie names. Browsers reject ``SameSite=None`` cookies that are
+    not also ``Secure``, so a plain ``delete_cookie`` would silently fail to
+    clear the auth cookies in the cross-site (production) setup. Re-setting an
+    empty, already-expired cookie with the same attributes guarantees removal.
+    """
+    for cookie_name in (
         settings.JWT_COOKIE_NAME,
-        path="/",  # Must match the path used when setting the cookie
-        samesite=settings.JWT_COOKIE_SAMESITE,
-    )
-    response.delete_cookie(
         settings.JWT_REFRESH_COOKIE_NAME,
-        path="/",  # Must match the path used when setting the cookie
-        samesite=settings.JWT_COOKIE_SAMESITE,
-    )
+    ):
+        response.set_cookie(
+            cookie_name,
+            "",
+            max_age=0,
+            path="/",  # Must match the path used when setting the cookie
+            httponly=settings.JWT_COOKIE_HTTPONLY,
+            secure=settings.JWT_COOKIE_SECURE,
+            samesite=settings.JWT_COOKIE_SAMESITE,
+        )
     return response
 
 

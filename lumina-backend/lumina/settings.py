@@ -26,7 +26,18 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+
+# Railway injects the public domain at runtime; trust it automatically.
+RAILWAY_PUBLIC_DOMAIN = config("RAILWAY_PUBLIC_DOMAIN", default="")
+if RAILWAY_PUBLIC_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
+
+# CSRF trusted origins are required for the Django admin / Swagger forms over HTTPS.
+_csrf_trusted = config("CSRF_TRUSTED_ORIGINS", default="")
+CSRF_TRUSTED_ORIGINS = [o for o in _csrf_trusted.split(",") if o]
+if RAILWAY_PUBLIC_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_PUBLIC_DOMAIN}")
 
 
 # Application definition
@@ -51,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -83,16 +95,29 @@ WSGI_APPLICATION = "lumina.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST"),
-        "PORT": config("DB_PORT"),
+# Railway provides a single DATABASE_URL; fall back to discrete DB_* vars locally.
+import dj_database_url
+
+DATABASE_URL = config("DATABASE_URL", default="")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "HOST": config("DB_HOST"),
+            "PORT": config("DB_PORT"),
+        }
+    }
 
 
 # Password validation
@@ -113,15 +138,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Cache configuration for rate limiting
-REDIS_HOST = config("REDIS_HOST", default="localhost")
-REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
-REDIS_DB = config("REDIS_DB", default=1, cast=int)
+# Cache configuration for rate limiting.
+# Railway provides a single REDIS_URL; fall back to discrete REDIS_* vars locally.
+REDIS_URL = config("REDIS_URL", default="")
+if not REDIS_URL:
+    REDIS_HOST = config("REDIS_HOST", default="localhost")
+    REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
+    REDIS_DB = config("REDIS_DB", default=1, cast=int)
+    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "IGNORE_EXCEPTIONS": True,  # Graceful degradation if Redis is unavailable
@@ -154,6 +183,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Serve Django admin / DRF / Swagger static assets via whitenoise in production.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -263,6 +303,9 @@ JWT_COOKIE_SECURE = config(
 )  # Set to True in production with HTTPS
 JWT_COOKIE_SAMESITE = config("COOKIE_SAMESITE", default="Lax")
 
+# CSRF cookie should be Secure in production (mirrors session/JWT cookies).
+CSRF_COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)
+
 # drf-spectacular Configuration
 SPECTACULAR_SETTINGS = {
     "TITLE": "Lumina Task Management API",
@@ -291,4 +334,33 @@ SPECTACULAR_SETTINGS = {
     },
     "PREPROCESSING_HOOKS": ["api.spectacular_hooks.preprocessing_filter_spec"],
     "POSTPROCESSING_HOOKS": ["api.spectacular_hooks.postprocessing_hook"],
+}
+
+# Logging: stream to stdout/stderr so the hosting platform (Railway) captures logs.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": config("LOG_LEVEL", default="INFO"),
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": config("DJANGO_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
 }

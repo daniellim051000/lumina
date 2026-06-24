@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+# Build only the React/web bundle; skip the Electron `tsc` step from `yarn build`.
+buildCommand = "yarn install --frozen-lockfile && yarn build-react"
+
+[deploy]
+# `-s` serves the SPA with index.html fallback (required for react-router routes).
+startCommand = "npx --yes serve -s build -l $PORT"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
