@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django_ratelimit",  # Rate limiting for security
     "api",
     "api.task",  # Task management app
+    "api.journal",  # Journal app
     "pomodoro",  # Pomodoro timer app
 ]
 
