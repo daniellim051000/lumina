@@ -19,48 +19,6 @@ export const SignIn: React.FC<SignInProps> = ({
     password: '',
   });
 
-  // TODO: Username preservation feature - currently not working properly
-  // Issue: React state shows correct data but UI doesn't reflect it
-  // Future enhancement: Investigate controlled component synchronization issue
-  // GitHub Issue: https://github.com/your-org/lumina/issues/XX (to be created)
-
-  /*
-  // Refs to directly control input values
-  const usernameRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
-
-  // Debug: Log every time formData changes
-  
-  // Store the username when form is submitted to preserve it on error
-  const [submittedUsername, setSubmittedUsername] = useState('');
-  
-  // Handle error-specific form clearing after error state is updated
-  useEffect(() => {
-    if (error && submittedUsername) {
-      const errorMessage = error.toLowerCase();
-      const isPasswordError = errorMessage.includes('password') || 
-                             errorMessage.includes('incorrect') || 
-                             errorMessage.includes('invalid');
-      
-      if (isPasswordError) {
-        // Update state
-        setFormData({
-          username: submittedUsername,
-          password: ''
-        });
-        
-        // Also directly set input values using refs to ensure UI updates
-        if (usernameRef.current) {
-          usernameRef.current.value = submittedUsername;
-        }
-        if (passwordRef.current) {
-          passwordRef.current.value = '';
-        }
-      }
-    }
-  }, [error, submittedUsername]);
-  */
-
   const [formErrors, setFormErrors] = useState<Partial<SignInRequest>>({});
 
   const validateForm = (): boolean => {

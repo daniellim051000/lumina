@@ -1,19 +1,21 @@
 import React from 'react';
 import { LogOut, User } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 import { SidebarItem } from './SidebarItem';
 import { useSidebar } from './SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navigationItems = [
-  { name: 'Dashboard', href: '/', icon: '🏠' },
-  { name: 'Tasks', href: '/tasks', icon: '✅' },
-  { name: 'Journal', href: '/journal', icon: '📖' },
-  { name: 'Focus Timer', href: '/timer', icon: '⏰' },
-  { name: 'Calendar', href: '/calendar', icon: '📅' },
-  { name: 'Settings', href: '/settings', icon: '⚙️' },
+  { key: 'dashboard', href: '/', icon: '🏠' },
+  { key: 'tasks', href: '/tasks', icon: '✅' },
+  { key: 'journal', href: '/journal', icon: '📖' },
+  { key: 'timer', href: '/timer', icon: '⏰' },
+  { key: 'calendar', href: '/calendar', icon: '📅' },
+  { key: 'settings', href: '/settings', icon: '⚙️' },
 ];
 
 export const SidebarNav: React.FC = () => {
+  const { t } = useTranslation();
   const { isCollapsed } = useSidebar();
   const { user, logout } = useAuth();
 
@@ -31,8 +33,8 @@ export const SidebarNav: React.FC = () => {
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navigationItems.map(item => (
           <SidebarItem
-            key={item.name}
-            name={item.name}
+            key={item.key}
+            name={t(`nav.${item.key}`)}
             href={item.href}
             icon={item.icon}
           />
@@ -66,10 +68,10 @@ export const SidebarNav: React.FC = () => {
               className={`w-full flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${
                 isCollapsed ? 'justify-center' : ''
               }`}
-              title="Logout"
+              title={t('nav.logout')}
             >
               <LogOut size={16} />
-              {!isCollapsed && <span className="ml-3">Logout</span>}
+              {!isCollapsed && <span className="ml-3">{t('nav.logout')}</span>}
             </button>
           </>
         )}

@@ -60,6 +60,15 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/labels/${id}/`,
   },
 
+  // Journal endpoints
+  JOURNAL: {
+    LIST: '/journal/',
+    CREATE: '/journal/',
+    DETAIL: (id: number) => `/journal/${id}/`,
+    UPDATE: (id: number) => `/journal/${id}/`,
+    DELETE: (id: number) => `/journal/${id}/`,
+  },
+
   // Pomodoro timer endpoints
   POMODORO: {
     SETTINGS: {

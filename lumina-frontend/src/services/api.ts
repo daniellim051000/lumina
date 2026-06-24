@@ -25,6 +25,11 @@ import {
   PomodoroPresetData,
   SessionFilters,
 } from '../types/pomodoro';
+import {
+  JournalEntry,
+  JournalEntryListItem,
+  JournalFilters,
+} from '../types/journal';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -51,6 +56,7 @@ export interface User {
   first_name: string;
   last_name: string;
   date_joined: string;
+  language_preference?: 'en' | 'zh-hans';
 }
 
 export interface AuthResponse {
@@ -745,6 +751,90 @@ class ApiService {
    */
   async deleteTaskComment(commentId: number): Promise<void> {
     return this.request<void>(API_ENDPOINTS.TASKS.COMMENTS.DELETE(commentId), {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================
+  // JOURNAL METHODS
+  // ========================
+
+  /**
+   * Retrieves journal entries with optional filtering
+   * @param {JournalFilters} filters Optional filters (date, date range, mood, search)
+   * @returns {Promise<JournalEntryListItem[]>} Promise resolving to list of entries
+   */
+  async getJournalEntries(
+    filters?: JournalFilters
+  ): Promise<JournalEntryListItem[]> {
+    const params = new globalThis.URLSearchParams();
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const endpoint = params.toString()
+      ? `${API_ENDPOINTS.JOURNAL.LIST}?${params.toString()}`
+      : API_ENDPOINTS.JOURNAL.LIST;
+
+    const response = await this.request<{
+      pagination?: unknown;
+      results: JournalEntryListItem[];
+    }>(endpoint);
+
+    return response.results || [];
+  }
+
+  /**
+   * Retrieves a single journal entry by ID
+   * @param {number} entryId Entry ID
+   * @returns {Promise<JournalEntry>} Promise resolving to entry details
+   */
+  async getJournalEntry(entryId: number): Promise<JournalEntry> {
+    return this.request<JournalEntry>(API_ENDPOINTS.JOURNAL.DETAIL(entryId));
+  }
+
+  /**
+   * Creates a new journal entry
+   * @param {Partial<JournalEntry>} entryData Entry data to create
+   * @returns {Promise<JournalEntry>} Promise resolving to created entry
+   */
+  async createJournalEntry(
+    entryData: Partial<JournalEntry>
+  ): Promise<JournalEntry> {
+    return this.request<JournalEntry>(API_ENDPOINTS.JOURNAL.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(entryData),
+    });
+  }
+
+  /**
+   * Updates an existing journal entry
+   * @param {number} entryId Entry ID
+   * @param {Partial<JournalEntry>} entryData Entry data to update
+   * @returns {Promise<JournalEntry>} Promise resolving to updated entry
+   */
+  async updateJournalEntry(
+    entryId: number,
+    entryData: Partial<JournalEntry>
+  ): Promise<JournalEntry> {
+    return this.request<JournalEntry>(API_ENDPOINTS.JOURNAL.UPDATE(entryId), {
+      method: 'PUT',
+      body: JSON.stringify(entryData),
+    });
+  }
+
+  /**
+   * Deletes a journal entry
+   * @param {number} entryId Entry ID
+   * @returns {Promise<void>} Promise resolving when entry is deleted
+   */
+  async deleteJournalEntry(entryId: number): Promise<void> {
+    return this.request<void>(API_ENDPOINTS.JOURNAL.DELETE(entryId), {
       method: 'DELETE',
     });
   }

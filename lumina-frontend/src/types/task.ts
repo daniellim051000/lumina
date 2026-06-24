@@ -117,6 +117,8 @@ export interface TaskFilters {
   parent_task?: number;
   search?: string;
   subtasks?: 'include';
+  date_from?: string;
+  date_to?: string;
 }
 
 export interface TaskBulkUpdate {

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation, changeLanguage, SupportedLanguage } from '../../i18n';
 
 export const ProfileForm: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { user, updateProfile, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -53,6 +55,22 @@ export const ProfileForm: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleLanguageChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const lng = e.target.value as SupportedLanguage;
+    // Apply immediately for instant feedback, then persist to the profile.
+    changeLanguage(lng);
+    try {
+      await updateProfile({ language_preference: lng });
+    } catch {
+      // Error handling is done in AuthContext; the UI language still updated.
+    }
+  };
+
+  const currentLanguage = (user?.language_preference ||
+    i18n.language) as SupportedLanguage;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,6 +172,25 @@ export const ProfileForm: React.FC = () => {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Your last name"
         />
+      </div>
+
+      {/* Language Preference */}
+      <div>
+        <label
+          htmlFor="language"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {t('settings.language.label')}
+        </label>
+        <select
+          id="language"
+          value={currentLanguage}
+          onChange={handleLanguageChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="en">{t('settings.language.en')}</option>
+          <option value="zh-hans">{t('settings.language.zhHans')}</option>
+        </select>
       </div>
 
       {/* Account Info */}

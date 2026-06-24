@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useTranslation } from './i18n';
 import './App.css';
 import { Sidebar, SidebarProvider, useSidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
@@ -8,21 +9,17 @@ import { TasksPage } from './pages/Tasks';
 import { Settings } from './pages/Settings';
 import { NotFoundPage } from './pages/NotFound';
 import { PomodoroTimer } from './pages/PomodoroTimer';
+import { JournalPage } from './pages/Journal';
+import { CalendarPage } from './pages/Calendar';
 import { injectCSSVariables } from './utils/cssVariables';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthPage } from './components/auth/AuthPage';
 
 const AppContent: React.FC = () => {
+  const { t } = useTranslation();
   const { isCollapsed } = useSidebar();
-  const { isAuthenticated, isLoading, user, error } = useAuth();
-
-  console.log('[APP] Render state:', {
-    isAuthenticated,
-    isLoading,
-    user,
-    error,
-  });
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -31,7 +28,7 @@ const AppContent: React.FC = () => {
         <div className="text-center">
           <div className="text-4xl mb-4">✨</div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('app.loading')}</p>
         </div>
       </div>
     );
@@ -57,15 +54,9 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/tasks" element={<TasksPage />} />
-          <Route
-            path="/journal"
-            element={<ComingSoonPage section="Journal" />}
-          />
+          <Route path="/journal" element={<JournalPage />} />
           <Route path="/timer" element={<PomodoroTimer />} />
-          <Route
-            path="/calendar"
-            element={<ComingSoonPage section="Calendar" />}
-          />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -91,23 +82,5 @@ function App() {
     </Router>
   );
 }
-
-const ComingSoonPage: React.FC<{ section: string }> = ({ section }) => (
-  <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-    <div className="text-6xl mb-6">🚧</div>
-    <h1 className="text-3xl font-bold text-gray-900 mb-4">
-      {section} - Coming Soon
-    </h1>
-    <p className="text-lg text-gray-600 mb-8">
-      This feature is under development and will be available soon.
-    </p>
-    <a
-      href="/"
-      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-    >
-      ← Back to Dashboard
-    </a>
-  </div>
-);
 
 export default App;

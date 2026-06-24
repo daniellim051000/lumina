@@ -168,13 +168,6 @@ export const useNotifications = () => {
     [showNotification]
   );
 
-  // Clear all notifications with a specific tag
-  const clearNotifications = useCallback((tag?: string) => {
-    // Note: There's no standard way to programmatically clear notifications
-    // This is more of a placeholder for potential future functionality
-    console.log(`Clearing notifications${tag ? ` with tag: ${tag}` : ''}`);
-  }, []);
-
   return {
     // State
     permission,
@@ -183,7 +176,6 @@ export const useNotifications = () => {
     // Core functions
     requestPermission,
     showNotification,
-    clearNotifications,
 
     // Pomodoro-specific helpers
     showTimerNotification,
