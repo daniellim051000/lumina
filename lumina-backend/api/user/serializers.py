@@ -9,6 +9,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import UserProfile
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""
@@ -114,10 +116,34 @@ class UserLoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile."""
 
+    language_preference = serializers.ChoiceField(
+        choices=UserProfile.LANGUAGE_CHOICES,
+        source="profile.language_preference",
+        required=False,
+    )
+
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "date_joined")
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "language_preference",
+        )
         read_only_fields = ("id", "username", "date_joined")
+
+    def update(self, instance, validated_data):
+        """Persist the nested language preference on the related profile."""
+        profile_data = validated_data.pop("profile", None)
+        instance = super().update(instance, validated_data)
+        if profile_data and "language_preference" in profile_data:
+            profile = instance.profile
+            profile.language_preference = profile_data["language_preference"]
+            profile.save()
+        return instance
 
 
 class PasswordChangeSerializer(serializers.Serializer):

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_ratelimit",  # Rate limiting for security
     "api",
+    "api.user",  # User accounts & profiles app
     "api.task",  # Task management app
     "api.journal",  # Journal app
     "pomodoro",  # Pomodoro timer app

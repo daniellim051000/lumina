@@ -229,6 +229,41 @@ class TestUserProfileView:
         assert response.data["email"] == "updated@example.com"
 
     @pytest.mark.django_db
+    def test_profile_includes_language_preference(self, authenticated_client, user):
+        """Test the profile response includes the language preference."""
+        url = reverse("user-profile")
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["language_preference"] == "en"
+
+    @pytest.mark.django_db
+    def test_update_language_preference(self, authenticated_client, user):
+        """Test the language preference can be updated and persists."""
+        url = reverse("user-profile")
+        response = authenticated_client.put(
+            url, {"language_preference": "zh-hans"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["language_preference"] == "zh-hans"
+
+        user.refresh_from_db()
+        assert user.profile.language_preference == "zh-hans"
+
+    @pytest.mark.django_db
+    def test_update_invalid_language_preference_rejected(
+        self, authenticated_client, user
+    ):
+        """Test an unsupported language value is rejected."""
+        url = reverse("user-profile")
+        response = authenticated_client.put(
+            url, {"language_preference": "fr"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
     def test_profile_requires_authentication(self, api_client):
         """Test profile access requires authentication."""
         url = reverse("user-profile")

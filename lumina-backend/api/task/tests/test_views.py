@@ -1,6 +1,6 @@
 """Tests for task management views."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.urls import reverse
 from django.utils import timezone
@@ -346,6 +346,41 @@ class TaskAPITest(BaseTaskAPITest):
         self.assertIn(overdue_task.id, task_ids)
         self.assertNotIn(future_task.id, task_ids)
         self.assertNotIn(completed_overdue_task.id, task_ids)
+
+    def test_filter_tasks_by_date_range(self):
+        """Test filtering tasks within a date range (used by the calendar)."""
+        in_range_by_date = TaskFactory(
+            user=self.user, date=date(2024, 6, 10), title="In range (date)"
+        )
+        in_range_by_due = TaskFactory(
+            user=self.user, due_date=date(2024, 6, 20), title="In range (due)"
+        )
+        boundary_start = TaskFactory(
+            user=self.user, date=date(2024, 6, 1), title="Boundary start"
+        )
+        boundary_end = TaskFactory(
+            user=self.user, date=date(2024, 6, 30), title="Boundary end"
+        )
+        before_range = TaskFactory(
+            user=self.user, date=date(2024, 5, 31), title="Before range"
+        )
+        after_range = TaskFactory(
+            user=self.user, date=date(2024, 7, 1), title="After range"
+        )
+
+        url = reverse("task:task-list")
+        response = self.client.get(
+            url, {"date_from": "2024-06-01", "date_to": "2024-06-30"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task_ids = [t["id"] for t in response.data["results"]]
+        self.assertIn(in_range_by_date.id, task_ids)
+        self.assertIn(in_range_by_due.id, task_ids)
+        self.assertIn(boundary_start.id, task_ids)  # inclusive
+        self.assertIn(boundary_end.id, task_ids)  # inclusive
+        self.assertNotIn(before_range.id, task_ids)
+        self.assertNotIn(after_range.id, task_ids)
 
     def test_exclude_subtasks_by_default(self):
         """Test that subtasks are excluded from list by default."""

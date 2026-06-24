@@ -153,6 +153,18 @@ class LabelDetailView(generics.RetrieveUpdateDestroyAPIView):
             enum=["include"],
             required=False,
         ),
+        OpenApiParameter(
+            name="date_from",
+            description="Include tasks whose date or due_date is on or after "
+            "this date (YYYY-MM-DD). Used by the calendar view.",
+            required=False,
+        ),
+        OpenApiParameter(
+            name="date_to",
+            description="Include tasks whose date or due_date is on or before "
+            "this date (YYYY-MM-DD). Used by the calendar view.",
+            required=False,
+        ),
     ],
     examples=[
         OpenApiExample(
@@ -194,6 +206,8 @@ class TaskListCreateView(generics.ListCreateAPIView):
         parent_task_id = self.request.query_params.get("parent_task")
         search = self.request.query_params.get("search")
         view = self.request.query_params.get("view")  # today, week, overdue
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
 
         if project_id:
             queryset = queryset.filter(project_id=project_id)
@@ -219,6 +233,17 @@ class TaskListCreateView(generics.ListCreateAPIView):
                 Q(title__icontains=search)
                 | Q(description__icontains=search)
                 | Q(notes__icontains=search)
+            )
+
+        # Date-range filter (matches either the work date or the due date).
+        # Used by the calendar to fetch tasks for the visible window.
+        if date_from:
+            queryset = queryset.filter(
+                Q(date__gte=date_from) | Q(due_date__gte=date_from)
+            )
+        if date_to:
+            queryset = queryset.filter(
+                Q(date__lte=date_to) | Q(due_date__lte=date_to)
             )
 
         # Special views
